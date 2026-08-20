@@ -1,0 +1,47 @@
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+tools/community-sync/node_modules/
+tools/community-sync/.npm-cache/
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Runtime files
+backend/storage/logs/*
+!backend/storage/logs/.gitkeep
+backend/storage/cache/*
+!backend/storage/cache/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+tools/community-sync/logs/
+tools/community-sync/tmp/
+tools/community-sync/run.lock
+database/*.sql
+.codex-backups/
+
+# Test and coverage output
+coverage/
+*.lcov
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak

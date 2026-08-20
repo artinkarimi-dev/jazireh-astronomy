@@ -1,0 +1,10 @@
+{
+  "name": "jazireh-community-sync",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "External Jazireh Community sync adapter.",
+  "dependencies": {
+    "undici": "7.16.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "posts": [
+    {
+      "source": "youtube-community",
+      "sourcePostId": "UgkxSamplePost0001",
+      "sourceUrl": "https://www.youtube.com/post/UgkxSamplePost0001",
+      "publishedAt": "2026-08-19T08:00:00Z",
+      "publishedLabel": "۱۹ اوت ۲۰۲۶",
+      "title": "عکس روز ناسا | نمونه آزمایشی",
+      "text": "عکس روز ناسا\nاین یک payload آزمایشی برای تست ingest ایمن و idempotent است.",
+      "excerpt": "این یک payload آزمایشی برای تست ingest ایمن و idempotent است.",
+      "sourceHash": "sample-payload-hash-1",
+      "images": []
+    }
+  ]
+}

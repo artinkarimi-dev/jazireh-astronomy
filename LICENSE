@@ -1,0 +1,50 @@
+JAZIREH ASTRONOMY SOURCE-AVAILABLE LICENSE
+Version 1.0 — August 2026
+
+Copyright © 2026 Artin Karimi and the applicable project rights holder(s).
+All rights reserved.
+
+1. PURPOSE
+
+This repository is made publicly visible solely for portfolio review, recruitment evaluation, security review, and technical inspection.
+
+2. LIMITED PERMISSION
+
+You may view the source code through the authorized public repository for the purposes listed above.
+
+The limited platform rights required by GitHub's Terms of Service to host, display, and reproduce the repository through GitHub features, including viewing and forking, are not restricted by this license. No additional permission is granted.
+
+3. RESTRICTIONS
+
+Without prior written permission from the applicable copyright holder(s), you may not:
+
+- use, execute, run, compile, build, or test the software;
+- install, deploy, host, publish, or operate the software;
+- copy or reproduce the source code outside the limited platform rights described above;
+- modify, adapt, translate, or create derivative works;
+- extract or reuse source code, design patterns, content, data, or assets in another project;
+- distribute, redistribute, sublicense, rent, lease, sell, or commercially exploit the software;
+- remove, obscure, or alter copyright, attribution, ownership, or license notices;
+- represent the software or any derivative as your own work.
+
+4. BRAND, CONTENT, AND MEDIA
+
+The project name, brand identity, visual design, written content, database content, screenshots, images, videos, logos, and other media remain the property of their respective rights holders. No trademark or media license is granted.
+
+5. THIRD-PARTY COMPONENTS
+
+Third-party libraries and dependencies are excluded from these terms and remain governed by their respective licenses. Nothing in this license reduces rights independently granted by those third-party licenses.
+
+6. NO OPEN-SOURCE GRANT
+
+This is a source-available license, not an open-source license. Public visibility does not grant permission to use, modify, distribute, or deploy the project.
+
+7. TERMINATION
+
+Any permission granted by this license terminates automatically if you violate its terms. Upon termination, you must stop all unauthorized activity and remove unauthorized copies under your control, except where retention is required by law or by GitHub's platform operation.
+
+8. DISCLAIMER
+
+THE SOURCE CODE AND ALL ASSOCIATED MATERIALS ARE PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, SECURITY, OR ACCURACY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDERS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM ACCESS TO OR INTERACTION WITH THE MATERIALS.
+
+For permission requests, contact the repository owner through the GitHub profile associated with this repository.

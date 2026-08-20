@@ -1,0 +1,120 @@
+import { resolveAssetPath } from '../lib/utils'
+
+const withResolvedImage = (item) => ({ ...item, image: resolveAssetPath(item.image) })
+const withResolvedVideo = (item) => ({ ...item, source: resolveAssetPath(item.source), poster: resolveAssetPath(item.poster) })
+
+export const navItems = [
+  { label: 'صفحه اصلی', path: '/' },
+  { label: 'آسمان امروز', path: '/sky' },
+  { label: 'کاوش فضا', path: '/explore' },
+  { label: 'اخبار علمی', path: '/news' },
+  { label: 'عکس روز ناسا', path: '/apod' },
+  { label: 'جزیره دیلی', path: '/jazireh-daily' },
+  { label: 'ویدیوها', path: '/videos' },
+  { label: 'رادار', path: '/radar' }
+]
+
+export const skyData = {
+  location: 'تهران، ایران',
+  temperature: 24,
+  condition: 'آسمان صاف',
+  humidity: 32,
+  wind: 8,
+  pressure: 1016,
+  visibility: 9.4,
+  moonPhase: 'هلال افزایشی',
+  moonIllumination: 29,
+  moonAge: 5,
+  sunset: '۱۹:۳۱',
+  sunrise: '۰۴:۵۶',
+  bestTime: '۲۲:۳۰ تا ۰۳:۳۰',
+  seeing: 7,
+  transparency: 8.5,
+  events: [
+    { title: 'هم‌نشینی ماه و زهره', time: '۱۹:۵۰', detail: 'فاصله زاویه‌ای تقریبی ۱٫۸ درجه' },
+    { title: 'بارش شهابی اتا دلوی', time: '۰۲:۳۰', detail: 'بهترین مشاهده در افق جنوب‌شرقی' },
+    { title: 'عبور ایستگاه فضایی', time: '۲۳:۲۱', detail: 'قابل مشاهده برای حدود چهار دقیقه' },
+    { title: 'مشاهده مشتری', time: '۲۲:۰۰', detail: 'درخشان در صورت فلکی ثور' }
+  ]
+}
+
+export const newsItems = [
+  {
+    id: 1,
+    slug: 'webb-distant-galaxy',
+    title: 'تلسکوپ جیمز وب ساختار یک کهکشان دوردست را با جزئیات تازه ثبت کرد',
+    excerpt: 'تصاویر تازه، نواحی زایش ستاره‌ای و توزیع غبار را در کهکشانی دورتر از آنچه پیش‌تر با این وضوح دیده بودیم نشان می‌دهند.',
+    content: 'تلسکوپ فضایی جیمز وب با ابزارهای فروسرخ خود توانسته ساختارهای ظریفی از غبار و مناطق فعال ستاره‌زایی را ثبت کند. این داده‌ها به پژوهشگران کمک می‌کند روند رشد کهکشان‌ها در دوره‌های اولیه کیهان را بهتر بررسی کنند. اهمیت این رصد در ترکیب حساسیت فروسرخ، تفکیک‌پذیری بالا و امکان مقایسه با داده‌های هابل است.',
+    category: 'کیهان‌شناسی',
+    image: '',
+    publishedAt: '۱۴ مرداد ۱۴۰۵',
+    readingTime: '۵ دقیقه'
+  },
+  {
+    id: 2,
+    slug: 'new-exoplanet',
+    title: 'سیاره‌ای فراخورشیدی در محدوده قابل سکونت یک ستاره آرام شناسایی شد',
+    excerpt: 'نامزد تازه جرمی سنگی است و برای بررسی جو احتمالی آن به رصدهای دقیق‌تر نیاز خواهد بود.',
+    content: 'این سیاره با بررسی افت‌های دوره‌ای نور ستاره میزبان شناسایی شده است. قرار گرفتن در محدوده قابل سکونت به معنی وجود قطعی آب یا حیات نیست؛ بلکه تنها نشان می‌دهد دمای تعادلی می‌تواند در شرایط مناسب اجازه حضور آب مایع را بدهد. سنجش جرم، شعاع و ترکیب جو مراحل بعدی بررسی هستند.',
+    category: 'فراخورشیدی',
+    image: '',
+    publishedAt: '۱۳ مرداد ۱۴۰۵',
+    readingTime: '۴ دقیقه'
+  },
+  {
+    id: 3,
+    slug: 'lunar-mission',
+    title: 'آزمایش سامانه ناوبری ماه‌نشین نسل جدید با موفقیت انجام شد',
+    excerpt: 'سامانه تازه می‌تواند در مرحله فرود، نقشه سطح را با داده‌های دوربین تطبیق دهد و موقعیت دقیق را محاسبه کند.',
+    content: 'ناوبری مبتنی بر تطبیق عوارض سطحی یکی از فناوری‌های کلیدی برای فرود دقیق روی ماه است. این روش به فضاپیما اجازه می‌دهد بدون اتکای کامل به ارتباط زمینی، دهانه‌ها و الگوهای سطحی را شناسایی و مسیر امن‌تری انتخاب کند.',
+    category: 'ماموریت‌ها',
+    image: '/media/carina-webb.webp',
+    publishedAt: '۱۲ مرداد ۱۴۰۵',
+    readingTime: '۳ دقیقه'
+  },
+  {
+    id: 4,
+    slug: 'jupiter-storms',
+    title: 'داده‌های تازه از تغییرات کمربندهای ابری مشتری منتشر شد',
+    excerpt: 'رصدهای چندطول‌موجی تغییراتی را در سرعت باد و ساختار طوفان‌های عرض‌های میانی نشان می‌دهند.',
+    content: 'جو مشتری سامانه‌ای بسیار پویا از نوارهای روشن و تیره، گردابه‌ها و جریان‌های سریع است. مقایسه تصاویر مرئی و فروسرخ به دانشمندان کمک می‌کند ارتفاع ابرها، دما و حرکت توده‌های جوی را بهتر تخمین بزنند.',
+    category: 'منظومه شمسی',
+    image: '',
+    publishedAt: '۱۰ مرداد ۱۴۰۵',
+    readingTime: '۶ دقیقه'
+  }
+]
+
+export const videos = [
+  { id: 1, title: 'آسمان پرستاره جزیره', duration: '۰۰:۱۱', source: '/media/home-hero-stars.mp4', poster: '/media/home-hero-stars.jpg', description: 'نمایی آرام از آسمان شب برای همراهی با روایت‌های علمی جزیره.' },
+  { id: 2, title: 'سفر در میان ستاره‌ها', duration: '۰۰:۱۵', source: '/media/starfield-background.mp4', poster: '/media/starfield-poster.jpg', description: 'حرکت آرام در میدان ستاره‌ای و فضای عمیق.' },
+  { id: 3, title: 'چشم‌انداز کیهانی', duration: '۰۰:۱۲', source: '/media/space-cinematic.mp4', poster: '/media/space-cinematic-poster.jpg', description: 'روایتی تصویری از پهنه تاریک و نورانی کیهان.' }
+]
+
+export const apodItems = [
+  {
+    id: 1,
+    date: '۱۴۰۵/۰۵/۱۴',
+    title: 'سحابی کارینا؛ زایشگاه ستاره‌ای',
+    image: '/media/carina-webb.webp',
+    photographer: 'NASA, ESA, CSA, STScI',
+    sourceUrl: 'https://science.nasa.gov/asset/webb/cosmic-cliffs-in-the-carina-nebula-nircam-and-miri-composite-image/',
+    excerpt: 'ستون‌های غبار و گاز در سحابی کارینا، محل شکل‌گیری ستاره‌های جوان و پرانرژی هستند.',
+    content: 'نور ستاره‌های جوان، دیواره‌های غبار و گاز را روشن کرده و بادهای ستاره‌ای به مرور این ساختارها را می‌تراشند. رنگ‌های تصویر ترکیبی از داده‌های چند فیلتر هستند تا جزئیات علمی بهتر دیده شوند.'
+  }
+]
+
+export const celestialObjects = [
+  { id: 1, slug: 'mercury', name: 'عطارد', type: 'سیاره سنگی', color: '#8f8a80', size: 0.42, distance: 4.8, speed: 0.015, facts: ['نزدیک‌ترین سیاره به خورشید است.', 'یک سال عطارد فقط ۸۸ روز زمینی طول می‌کشد.', 'با وجود نزدیکی به خورشید، یخ آب در دهانه‌های همیشه‌سایه قطبی دیده شده است.'], stats: { diameter: '۴٬۸۸۰ کیلومتر', day: '۵۸٫۶ روز زمینی', year: '۸۸ روز زمینی', moons: '۰' } },
+  { id: 2, slug: 'venus', name: 'زهره', type: 'سیاره سنگی', color: '#d7a86e', size: 0.62, distance: 6.5, speed: 0.012, facts: ['چرخش زهره برخلاف بیشتر سیاره‌ها معکوس است.', 'جو غلیظ دی‌اکسیدکربن اثر گلخانه‌ای شدیدی ایجاد می‌کند.', 'فشار سطحی آن حدود ۹۰ برابر فشار سطح زمین است.'], stats: { diameter: '۱۲٬۱۰۴ کیلومتر', day: '۲۴۳ روز زمینی', year: '۲۲۵ روز زمینی', moons: '۰' } },
+  { id: 3, slug: 'earth', name: 'زمین', type: 'سیاره اقیانوسی', color: '#2c7fca', size: 0.67, distance: 8.4, speed: 0.01, facts: ['تنها جرم شناخته‌شده با حیات قطعی است.', 'حدود ۷۱ درصد سطح آن با آب پوشیده شده است.', 'میدان مغناطیسی زمین بخش زیادی از باد خورشیدی را منحرف می‌کند.'], stats: { diameter: '۱۲٬۷۴۲ کیلومتر', day: '۲۳ ساعت و ۵۶ دقیقه', year: '۳۶۵٫۲۵ روز', moons: '۱' } },
+  { id: 4, slug: 'mars', name: 'مریخ', type: 'سیاره سنگی', color: '#b94f35', size: 0.5, distance: 10.5, speed: 0.008, facts: ['رنگ سرخ مریخ از اکسید آهن در خاک آن می‌آید.', 'المپوس مانس بزرگ‌ترین آتشفشان شناخته‌شده منظومه شمسی است.', 'شواهد فراوانی از جریان آب در گذشته مریخ وجود دارد.'], stats: { diameter: '۶٬۷۷۹ کیلومتر', day: '۲۴ ساعت و ۳۷ دقیقه', year: '۶۸۷ روز زمینی', moons: '۲' } },
+  { id: 5, slug: 'jupiter', name: 'مشتری', type: 'غول گازی', color: '#c89462', size: 1.55, distance: 14.5, speed: 0.0045, facts: ['بزرگ‌ترین سیاره منظومه شمسی است.', 'لکه سرخ بزرگ یک طوفان عظیم و دیرپا است.', 'میدان مغناطیسی مشتری بسیار قدرتمند و گسترده است.'], stats: { diameter: '۱۳۹٬۸۲۰ کیلومتر', day: '۹ ساعت و ۵۶ دقیقه', year: '۱۱٫۸۶ سال زمینی', moons: 'بیش از ۹۰' } },
+  { id: 6, slug: 'saturn', name: 'زحل', type: 'غول گازی حلقه‌دار', color: '#d6bb82', size: 1.35, distance: 19, speed: 0.0032, ring: true, facts: ['حلقه‌ها عمدتاً از قطعات یخ و سنگ تشکیل شده‌اند.', 'چگالی متوسط زحل از آب کمتر است.', 'قمر تیتان جوی غلیظ و دریاچه‌های هیدروکربنی دارد.'], stats: { diameter: '۱۱۶٬۴۶۰ کیلومتر', day: '۱۰ ساعت و ۴۲ دقیقه', year: '۲۹٫۴ سال زمینی', moons: 'بیش از ۱۴۰' } },
+  { id: 7, slug: 'uranus', name: 'اورانوس', type: 'غول یخی', color: '#73c9d6', size: 0.95, distance: 23.5, speed: 0.0024, facts: ['محور چرخش آن تقریباً روی پهلو قرار دارد.', 'متان موجود در جو باعث رنگ آبی-سبز آن می‌شود.', 'فصل‌های اورانوس چندین دهه طول می‌کشند.'], stats: { diameter: '۵۰٬۷۲۴ کیلومتر', day: '۱۷ ساعت و ۱۴ دقیقه', year: '۸۴ سال زمینی', moons: '۲۷' } },
+  { id: 8, slug: 'neptune', name: 'نپتون', type: 'غول یخی', color: '#315ec9', size: 0.92, distance: 27.5, speed: 0.0019, facts: ['سریع‌ترین بادهای سیاره‌ای منظومه شمسی در نپتون ثبت شده‌اند.', 'رنگ آبی آن به ترکیب جو و پراکندگی نور مربوط است.', 'قمر تریتون در جهتی مخالف چرخش نپتون حرکت می‌کند.'], stats: { diameter: '۴۹٬۲۴۴ کیلومتر', day: '۱۶ ساعت', year: '۱۶۴٫۸ سال زمینی', moons: '۱۴' } }
+]
+
+newsItems.forEach((item) => { item.image = resolveAssetPath(item.image) })
+videos.forEach((item) => { item.source = resolveAssetPath(item.source); item.poster = resolveAssetPath(item.poster) })
+apodItems.forEach((item) => { item.image = resolveAssetPath(item.image) })
