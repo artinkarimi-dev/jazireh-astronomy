@@ -1,6 +1,6 @@
 # GitHub Repository Setup
 
-## Repository metadata
+## Repository Metadata
 
 **Name**
 
@@ -8,10 +8,10 @@
 jazireh-astronomy
 ```
 
-**Description**
+**Recommended About description**
 
 ```text
-Source-available Persian RTL astronomy platform for the official Jazireh channel, built with React, PHP, and MySQL.
+Persian RTL astronomy portal built with React/Vite + WordPress, custom REST APIs, and NASA/YouTube integrations.
 ```
 
 **Visibility**
@@ -20,63 +20,63 @@ Source-available Persian RTL astronomy platform for the official Jazireh channel
 Public
 ```
 
-**GitHub license selector**
+**License selector**
 
 ```text
 None
 ```
 
-Do not add MIT, Apache-2.0, GPL, or another open-source license. The repository already contains a custom `LICENSE` file.
+The repository already contains a custom source-available [LICENSE](../LICENSE).
 
-## Suggested topics
+## Suggested Topics
 
 ```text
 react
 vite
-tailwindcss
-react-three-fiber
+wordpress
 php
-mysql
+rest-api
 astronomy
 rtl
 persian
-full-stack
-youtube
+nasa-api
+youtube-api
 source-available
 portfolio
 ```
 
-## Recommended settings
+## Recommended Settings
 
 - Default branch: `main`
-- Enable secret scanning and push protection when available.
-- Enable private vulnerability reporting.
-- Keep Discussions and Wiki disabled unless they become necessary.
-- Use `frontend/public/brand/icon-512.png` as the repository social preview until a current website screenshot is prepared.
-- Add the production website URL only after a real deployment exists.
-- Do not create a release until GitHub Actions is green.
+- Enable secret scanning and push protection when available
+- Enable private vulnerability reporting
+- Keep Wiki and Discussions disabled unless they become operationally useful
+- Add the public website URL only after a real deployment exists
+- Use a current product screenshot as the repository social preview instead of a generic icon
+- Do not create a release until GitHub Actions is green
 
-## Push this prepared version
+## Social Preview Recommendation
 
-```bash
-git status
-git add .
-git diff --cached
-git commit -m "feat: professionalize Jazireh branding and content platform"
-git push origin main
-```
-
-Before committing, confirm these paths are absent:
+Recommended candidate:
 
 ```text
-backend/.env
-frontend/.env
+docs/screenshots/home-desktop.png
+```
+
+Suggested exported size for a dedicated future social card:
+
+```text
+1280 x 640
+```
+
+## Pre-Push Reminder
+
+Before any public push, confirm these remain absent or untracked:
+
+```text
 frontend/node_modules
-frontend/dist
-```
-
-## Suggested About text
-
-```text
-Official Jazireh astronomy platform • Persian RTL • React, PHP, MySQL • Public source review, proprietary use terms
+frontend/.env*
+WordPress runtime secrets
+database dumps
+uploads archives
 ```

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend lint and production build
+    name: Frontend lint and builds
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -35,10 +35,16 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Run lint and build
-        run: npm run check
+      - name: Run lint
+        run: npm run lint
 
-  backend:
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build WordPress theme assets
+        run: npm run build:wordpress
+
+  php:
     name: PHP syntax check
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -52,5 +58,6 @@ jobs:
           php-version: '7.4'
           coverage: none
 
-      - name: Lint PHP files
-        run: find backend -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Lint project PHP files
+        run: |
+          find wordpress/wp-content/plugins/jazireh-core wordpress/wp-content/themes/jazireh-theme -type f -name '*.php' -print0 | xargs -0 -n1 php -l

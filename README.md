@@ -1,104 +1,187 @@
-<div align="center">
-  <img src="frontend/public/brand/jazireh-logo.webp" width="148" alt="Jazireh Astronomy logo" />
+<p align="center">
+  <img src="./frontend/public/brand/jazireh-logo.webp" alt="Jazireh Astronomy" width="180">
+</p>
 
-# Jazireh Astronomy
+<h1 align="center">Jazireh Astronomy</h1>
 
-**A Persian RTL astronomy platform for a real client, now delivered as a WordPress-based production architecture with a React frontend and WordPress-managed external integrations.**
+<p align="center">
+  Persian RTL astronomy portal combining editorial science content, Jazireh media, and recurring scientific data experiences.
+</p>
 
-React · Vite · WordPress · PHP · MySQL
+<p align="center">
+  <strong>Status:</strong> Active Development / Pre-production
+</p>
 
-[Persian README](README.fa.md) · [YouTube Channel](https://www.youtube.com/@Jazireh) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md)
-</div>
+<p align="center">
+  React · Vite · WordPress · Custom REST API · NASA APOD · YouTube Data API
+</p>
+
+<p align="center">
+  <a href="./README.fa.md">Persian README</a> ·
+  <a href="https://www.youtube.com/@Jazireh">YouTube Channel</a> ·
+  <a href="./docs/ARCHITECTURE.md">Architecture</a> ·
+  <a href="./docs/API.md">API</a> ·
+  <a href="./docs/ROADMAP.md">Roadmap</a> ·
+  <a href="./docs/PRODUCT_VISION.md">Product Vision</a>
+</p>
 
 > [!IMPORTANT]
-> This is a public source-available portfolio repository, not an open-source project. The source may be inspected for portfolio, recruitment, and technical review, but it may not be installed, executed, copied, modified, deployed, redistributed, or commercially used without prior written permission. See [`LICENSE`](LICENSE).
+> This repository is public and source-available for technical review and portfolio presentation. It is not open source. Use, redistribution, deployment, and derivative work require prior written permission. See [LICENSE](./LICENSE).
 
 ## Overview
 
-Jazireh Astronomy is a responsive Persian-language astronomy experience covering science news, APOD, videos, sky conditions, and solar-system exploration. The final shipped architecture uses:
+Jazireh is not positioned as a simple astronomy blog. The product direction is a Persian scientific portal: a place where editorial content, video, and recurring scientific information give visitors a reason to come back.
 
-- a React + Vite frontend
-- a custom WordPress theme that serves the React shell
-- a custom `jazireh-core` plugin for content models, settings, admin tooling, REST endpoints, YouTube latest-video caching, and Jazireh Daily ingestion
-- WordPress as the authoritative CMS and admin/auth system
+Today, the public application is already built around that model:
 
-The retired standalone PHP backend is no longer part of the active runtime.
+- React + Vite frontend delivered through a custom WordPress theme
+- `jazireh-core` WordPress plugin as the application backend
+- WordPress as the CMS, admin, media store, and settings authority
+- server-side integrations for NASA APOD and YouTube latest videos
+- external Jazireh Daily sync pipeline for YouTube Community content
 
-## Final architecture
+## Visual Preview
 
-```text
-Browser
-  |
-  v
-WordPress theme (jazireh-theme)
-  |
-  v
-React app
-  |
-  v
-WordPress REST API (jazireh-core)
-  |\
-  | +--> WordPress DB, menus, uploads
-  |
-  +----> NASA APOD / YouTube Data API
+| Home Desktop | Home Mobile |
+|---|---|
+| ![Jazireh home desktop](./docs/screenshots/home-desktop.png) | ![Jazireh home mobile](./docs/screenshots/home-mobile.png) |
 
-External Community synchronization is intentionally isolated outside public page requests:
+| Jazireh Daily |
+|---|
+| ![Jazireh Daily page](./docs/screenshots/jazireh-daily-desktop.png) |
 
-```text
-External adapter
-  |
-  v
-Signed ingestion endpoint
-  |
-  v
-WordPress jazireh_daily posts + media
-```
-```
+## Engineering Highlights
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for more detail.
+- **React inside WordPress, without splitting the product in two.** WordPress owns content, settings, admin, media, and auth; React owns the public SPA experience.
+- **Server-side external integrations.** NASA and YouTube API keys stay off the public frontend. The browser talks only to WordPress REST.
+- **Reliable latest-video ingestion.** YouTube retrieval uses the channel uploads-playlist flow, filters out Shorts and live/upcoming streams, and keeps a last-known-good cache.
+- **Signed Jazireh Daily ingestion.** Community posts are synchronized through an external adapter into a dedicated WordPress endpoint protected by HMAC, timestamp validation, and replay protection.
+- **WordPress as the stable publishing surface.** After sync, Community imagery and content live in WordPress posts/media instead of being hot-linked from a fragile upstream source.
+- **Performance-conscious frontend work.** Route lazy loading, lightweight CSS motion, responsive media, and a reduced dependency surface keep the public app leaner than the earlier iterations.
 
-## Product areas
+## Current Features
+
+Implemented in the current repository and runtime architecture:
 
 - Home
-- News and news detail
-- APOD
-- Jazireh Daily / YouTube Community NASA posts
+- News archive
+- News detail pages
 - Videos
+- NASA APOD
 - Sky
-- Explore / celestial objects
-- Radar simulation
-- Newsletter
-- Native WordPress admin and login
+- Explore
+- Radar
+- Jazireh Daily archive
+- Jazireh Daily detail pages
+- Newsletter subscription endpoint
+- Native WordPress CMS and admin flows
 
-## Repository structure
+## Feature Status
 
-```text
-jazireh-source/
-├── docs/                                 Architecture and API docs
-├── frontend/                             React source and Vite build pipeline
-├── wordpress/
-│   └── wp-content/
-│       ├── plugins/jazireh-core/         REST API, admin, CPTs, newsletter, settings
-│       └── themes/jazireh-theme/         React shell theme and built dist assets
-├── archive/backend-retired-2026-08-19/   Retired standalone backend kept only for rollback/archive
-├── database/                             Legacy SQL archive/reference material
-├── README.md
-└── README.fa.md
+| Area | Status | Notes |
+|---|---|---|
+| Home experience | Implemented | React frontend rendered through WordPress theme |
+| Scientific news | Implemented | WordPress custom content model + REST + detail pages |
+| Latest YouTube videos | Implemented | Server-side YouTube Data API integration with cache |
+| NASA APOD | Implemented | Server-side NASA fetch, rolling date range, transient cache |
+| Jazireh Daily | Implemented | External sync adapter + signed ingestion + WordPress storage |
+| Newsletter signup | Implemented | WordPress-backed subscriber storage |
+| Explore / objects | Implemented | Authored educational object dataset served from WordPress |
+| Sky | Partial | Current shipped payload is a static compatibility snapshot |
+| Radar | Partial | Simulation, not live tracking |
+| Search | Planned | Not present as an active public feature in current code |
+| Sun Now / live solar imagery | Planned | Not present in current runtime |
+| Earth EPIC imagery | Planned | Not present in current runtime |
+| Earthquakes | Planned | Not present in current runtime |
+| Astronomical events | Planned | Not present in current runtime |
+| Topic hubs | Planned | Not present in current runtime |
+| User accounts | Planned | Public custom account experience not implemented |
+| PWA capability | Planned | Repository includes app icons, but no production PWA feature set is shipped |
+| English version | Planned | No active bilingual product runtime yet |
+
+## Current Architecture
+
+```mermaid
+flowchart TD
+    A[Browser] --> B[WordPress Theme<br/>jazireh-theme]
+    B --> C[React + Vite SPA]
+    C --> D[WordPress REST API<br/>jazireh-core]
+    D --> E[WordPress DB / Media / Settings]
+    D --> F[NASA APOD API]
+    D --> G[YouTube Data API]
+    H[External Community Sync Adapter] --> I[Signed jazireh-daily-sync Endpoint]
+    I --> E
+    E --> D
 ```
 
-## Local development
+The retired standalone backend is no longer part of the active runtime architecture.
+
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full breakdown.
+
+## Reliability, Performance, Security
+
+**Reliability**
+
+- WordPress transients for APOD and latest videos
+- last-known-good fallback for YouTube latest videos
+- deduplicated Jazireh Daily upserts based on upstream source identity and source hash
+- manual WordPress content ownership as a fallback even when external sync is unavailable
+
+**Performance**
+
+- route-level lazy loading in the React app
+- responsive image and media handling
+- reduced JavaScript weight after removing heavier animation and 3D dependencies from the public surface
+- tracked theme build output so deployment does not depend on rebuilding on the host
+
+**Security**
+
+- NASA and YouTube API keys remain server-side
+- native WordPress authentication remains authoritative
+- Jazireh Daily ingestion requires HMAC headers
+- signed sync requests are checked with timestamp expiry and replay protection
+- public frontend does not embed private integration secrets
+
+See [SECURITY.md](./SECURITY.md) for the public security policy.
+
+## Repository Structure
+
+```text
+./
+├── .github/                           GitHub Actions workflow(s)
+├── docs/                              Public-facing technical documentation
+├── frontend/                          React + Vite source
+├── tools/community-sync/              External Jazireh Daily sync tooling
+├── wordpress/
+│   └── wp-content/
+│       ├── plugins/jazireh-core/      Custom plugin: REST, CPTs, settings, integrations
+│       └── themes/jazireh-theme/      Custom theme serving the React shell and build assets
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.fa.md
+├── README.md
+├── SECURITY.md
+└── START-HERE-FA.md
+```
+
+The repository contains project-owned WordPress code only. WordPress core, the live database, and runtime uploads are expected to exist in the deployment environment and are intentionally not committed here.
+
+## Local Development
+
+Local examples below describe the author's current XAMPP-based setup only. They are not production architecture requirements.
 
 ### Requirements
 
-- Node.js 20 or newer
-- npm 10 or newer
-- PHP 7.4 or newer
+- Node.js 20+
+- npm 10+
+- PHP 7.4+
 - MySQL
-- Apache / WordPress local environment such as XAMPP
+- a local WordPress runtime such as XAMPP, Local, Laragon, or an equivalent stack
 
-### React build flow
+### Frontend build
 
-From `frontend/`:
+From [`frontend/`](./frontend/):
 
 ```bash
 npm ci
@@ -106,88 +189,53 @@ npm run build
 npm run build:wordpress
 ```
 
-`build:wordpress` writes the current Vite bundle into the source theme under:
+`build:wordpress` writes the current Vite bundle into:
 
 ```text
 wordpress/wp-content/themes/jazireh-theme/dist
 ```
 
-### Live runtime sync
+### Local runtime pattern
 
-After a successful build, sync these custom project assets into the live WordPress install:
+In the author's current machine, the project code lives separately from the active WordPress runtime, which is why the repository stores only the custom theme and plugin.
 
-- `wordpress/wp-content/themes/jazireh-theme`
-- `wordpress/wp-content/plugins/jazireh-core`
-
-The active local runtime in this environment is:
+Example local runtime path:
 
 ```text
 C:\xampp\htdocs\wordpress
 ```
 
-### Quality checks
-
-```bash
-npm run lint
-npm run build
-npm run build:wordpress
-```
-
-PHP syntax checks should be run against touched custom theme/plugin files.
-
-## Active API base
-
-The frontend resolves its logical API paths to:
+Example local REST base:
 
 ```text
 http://localhost/wordpress/wp-json/jazireh/v1
 ```
 
-See [`docs/API.md`](docs/API.md) for endpoint details.
+## Deployment Model
 
-## External integrations
+Production or staging deployment requires:
 
-- NASA APOD: server-side in WordPress
-- YouTube latest videos: server-side in WordPress through the channel uploads-playlist API flow with last-known-good cache fallback
-- YouTube Community posts: external adapter -> signed WordPress ingestion -> WordPress storage
-- Sky: current release uses a static compatibility payload, not live OpenWeather data
+- WordPress core/runtime on the host
+- the Jazireh database content
+- `wp-content/uploads`
+- `jazireh-theme`
+- `jazireh-core`
+- production configuration and secrets
+- HTTPS
+- an external scheduled worker for automatic Jazireh Daily synchronization
 
-Do not expose API keys to the browser.
+The repository should **not** be deployed together with `frontend/node_modules`, local caches, or any local-machine XAMPP-specific files.
 
-## Production deployment outline
+## Known Limitations
 
-The eventual hosting package should include:
+- Sky currently ships as a static compatibility snapshot, not a live weather or observability feed.
+- Radar is a simulated experience, not live scientific tracking.
+- Explore is based on curated educational content rather than live astronomical catalogs.
+- Jazireh Daily rendering is production-ready, but automatic new Community ingestion depends on the external adapter and the continued availability of upstream YouTube Community extraction.
+- The project is still pre-production and has not yet been documented here as a live deployed public domain.
 
-- WordPress core on the target host
-- custom theme `jazireh-theme`
-- custom plugin `jazireh-core`
-- WordPress database content
-- uploads/media
-- production `wp-config.php` and hosting configuration
+## Attribution
 
-It should not include:
-
-- `frontend/node_modules`
-- the retired standalone backend as active application code
-- stale Vite bundles
-- local XAMPP paths
-- legacy database dumps unless intentionally archived
-
-## Security notes
-
-- Native WordPress auth is authoritative.
-- Do not commit secrets, API keys, or real environment files.
-- Keep WordPress and custom code on HTTPS in production.
-- Review uploads, plugin/theme permissions, backups, and monitoring before go-live.
-
-## Known limitations
-
-- Sky currently serves a static compatibility snapshot.
-- Live Jazireh Community extraction is not verified in this local environment on August 19, 2026; the adapter, secure ingest path, and WordPress fallback platform are implemented.
-- Radar is a simulation, not live tracking.
-- Explore uses authored educational object data.
-- Lint still contains a set of pre-existing non-blocking issues outside the final migration scope.
-
-## Developer
+Jazireh is an independent client project and is not affiliated with NASA or YouTube. External scientific imagery and APIs should be credited to their respective providers.
 
 Designed and developed by **Artin Karimi** for a real client project.

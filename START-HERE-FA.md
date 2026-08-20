@@ -1,56 +1,42 @@
-# شروع سریع نسخه اصلاح‌شده جزیره
+# شروع سریع مخزن جزیره
 
-این نسخه جایگزین نسخه قبلی است و مشکلات متن‌های نامرتبط، ارتفاع ناهماهنگ کارت‌ها، صفحه خالی کاوش و استفاده نادرست از ویدیو را اصلاح می‌کند.
+اگر می‌خواهید خیلی سریع ساختار و ارزش فنی این ریپازیتوری را بفهمید، این ترتیب بهترین نقطه شروع است:
 
-## اجرای محلی در XAMPP
+1. [README.md](./README.md) برای معرفی بین‌المللی و نمای کلی مهندسی
+2. [README.fa.md](./README.fa.md) برای نسخه فارسی همان روایت
+3. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) برای معماری فعلی
+4. [docs/API.md](./docs/API.md) برای REST API سفارشی
+5. [docs/ROADMAP.md](./docs/ROADMAP.md) برای مرز روشن بین وضعیت فعلی و برنامه آینده
 
-پوشه پروژه را در این مسیر قرار دهید:
+## این مخزن چه چیزی را نگه می‌دارد
+
+این ریپازیتوری فقط بخش‌های متعلق به خود پروژه را شامل می‌شود:
+
+- فرانت‌اند React
+- قالب سفارشی WordPress
+- افزونه سفارشی WordPress
+- ابزار بیرونی Community sync
+
+WordPress core، دیتابیس، uploads و secretهای محیط اجرا عمدا داخل ریپازیتوری نیستند.
+
+## الگوی توسعه محلی
+
+نمونه‌ای از ساختار محیط فعلی نویسنده:
 
 ```text
-C:\xampp\htdocs\jazireh-astronomy
+سورس پروژه: C:\xampp\htdocs\jazireh-github
+WordPress runtime: C:\xampp\htdocs\wordpress
 ```
 
-سپس در Git Bash:
+ساخت فرانت‌اند:
 
 ```bash
-cd /c/xampp/htdocs/jazireh-astronomy/frontend
+cd frontend
 npm ci
-npm run dev
-```
-
-آدرس سایت:
-
-```text
-http://localhost:5173
-```
-
-## بررسی نهایی
-
-```bash
-npm run lint
 npm run build
+npm run build:wordpress
 ```
 
-## مهم‌ترین اصلاحات
+## نکته مهم
 
-- تمام متن‌های مربوط به طراحی، ریسپانسیو بودن، API و داده آزمایشی از صفحات عمومی حذف شدند.
-- ویدیوی ارسال‌شده فقط در Hero صفحه اصلی به‌عنوان پس‌زمینه استفاده می‌شود.
-- صفحات دیگر پس‌زمینه مشکی و سبک دارند.
-- کارت‌های هم‌ردیف ارتفاع یکسان دارند.
-- صفحه کاوش با نمایش تعاملی سبک و پایدار بازسازی شده و دیگر به WebGL وابسته نیست.
-- وابستگی‌های Three.js حذف شده‌اند تا حجم و زمان بارگذاری کمتر شود.
-- تصویر APOD پیش‌فرض فقط از نسخه باکیفیت استفاده می‌کند.
-- لینک رسمی کانال در تمام CTAهای یوتیوب:
-
-```text
-https://www.youtube.com/@Jazireh
-```
-
-## فایل‌های رسانه اصلی
-
-- `frontend/public/media/home-hero-stars.mp4`: پس‌زمینه Hero صفحه اصلی
-- `frontend/public/media/home-hero-stars.jpg`: پوستر باکیفیت Hero
-- `frontend/public/media/starfield-background.mp4`: ویدیوی کتابخانه ویدیو
-- `frontend/public/media/space-cinematic.mp4`: ویدیوی کتابخانه ویدیو
-- `frontend/public/media/carina-webb.webp`: تصویر باکیفیت APOD
-- `frontend/public/brand/jazireh-logo.webp`: لوگوی بهینه وب
+این مخزن برای بررسی فنی عمومی و ارائه نمونه‌کار آماده شده است. برای استقرار واقعی، باید WordPress runtime، دیتابیس، uploads، تنظیمات تولید و worker همگام‌سازی Jazireh Daily را جداگانه فراهم کنید.

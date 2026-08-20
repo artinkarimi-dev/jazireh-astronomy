@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowUpLeft, ImageIcon } from 'lucide-react'
+import { ArrowLeft, ImageIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import PageHero from '../components/PageHero'

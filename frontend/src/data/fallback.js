@@ -1,8 +1,5 @@
 import { resolveAssetPath } from '../lib/utils'
 
-const withResolvedImage = (item) => ({ ...item, image: resolveAssetPath(item.image) })
-const withResolvedVideo = (item) => ({ ...item, source: resolveAssetPath(item.source), poster: resolveAssetPath(item.poster) })
-
 export const navItems = [
   { label: 'صفحه اصلی', path: '/' },
   { label: 'آسمان امروز', path: '/sky' },
