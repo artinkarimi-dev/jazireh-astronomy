@@ -22,6 +22,25 @@ require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-newsletter.php';
 require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-youtube.php';
 require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-daily.php';
 require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-settings.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-astronomy-cache.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-visibility-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-horizons-provider.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-ephemeris.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-astronomy.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-planets.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-events.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-topics.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-sun.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-apod-editorial.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-apod-localizer.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-apod-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-sun-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-moon-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-sky-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-earth-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-earthquake-service.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-widgets.php';
+require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-search.php';
 require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-rest.php';
 require_once JAZIREH_CORE_PATH . 'includes/class-jazireh-admin.php';
 
@@ -32,6 +51,11 @@ function jazireh_core_boot()
     Jazireh_Newsletter::boot();
     Jazireh_YouTube::boot();
     Jazireh_Daily::boot();
+    Jazireh_Events::boot();
+    Jazireh_Topics::boot();
+    Jazireh_APOD_Editorial::boot();
+    Jazireh_APOD_Localizer::boot();
+    Jazireh_APOD_Service::boot();
     Jazireh_Settings::boot();
     Jazireh_REST::boot();
     Jazireh_Admin::boot();
@@ -43,14 +67,19 @@ function jazireh_core_activate()
     Jazireh_News::register_content_types();
     Jazireh_Objects::register_content_type();
     Jazireh_Daily::register_content_type();
+    Jazireh_Events::register_content_type();
+    Jazireh_Topics::register_taxonomy();
+    Jazireh_APOD_Editorial::register_content_type();
     Jazireh_News::seed_content();
     Jazireh_Newsletter::maybe_upgrade_schema();
+    Jazireh_Settings::schedule_widget_prewarm();
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, 'jazireh_core_activate');
 
 function jazireh_core_deactivate()
 {
+    Jazireh_Settings::clear_widget_prewarm();
     flush_rewrite_rules();
 }
 register_deactivation_hook(__FILE__, 'jazireh_core_deactivate');

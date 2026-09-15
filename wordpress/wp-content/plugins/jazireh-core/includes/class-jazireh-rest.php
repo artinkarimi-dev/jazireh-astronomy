@@ -44,6 +44,51 @@ final class Jazireh_REST
             'permission_callback' => '__return_true'
         ));
 
+        register_rest_route(self::NAMESPACE_NAME, '/widgets', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widgets'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/apod', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_apod'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'limit' => array('sanitize_callback' => 'absint', 'default' => 1)
+            )
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/sun', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_sun'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/moon', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_moon'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/sky', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_sky'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/earth', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_earth'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/widgets/earthquakes', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'widget_earthquakes'),
+            'permission_callback' => '__return_true'
+        ));
+
         register_rest_route(self::NAMESPACE_NAME, '/apod', array(
             'methods' => WP_REST_Server::READABLE,
             'callback' => array(__CLASS__, 'apod'),
@@ -56,6 +101,64 @@ final class Jazireh_REST
         register_rest_route(self::NAMESPACE_NAME, '/sky', array(
             'methods' => WP_REST_Server::READABLE,
             'callback' => array(__CLASS__, 'sky'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/planets', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'planets'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/search', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'search'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'q' => array('sanitize_callback' => 'sanitize_text_field', 'default' => ''),
+                'page' => array('sanitize_callback' => 'absint', 'default' => 1),
+                'per_page' => array('sanitize_callback' => 'absint', 'default' => 10)
+            )
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/events', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'events'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'limit' => array('sanitize_callback' => 'absint'),
+                'days' => array('sanitize_callback' => 'absint'),
+                'status' => array('sanitize_callback' => 'sanitize_key', 'default' => 'upcoming'),
+                'type' => array('sanitize_callback' => 'sanitize_key', 'default' => ''),
+                'page' => array('sanitize_callback' => 'absint', 'default' => 1),
+                'per_page' => array('sanitize_callback' => 'absint', 'default' => 10)
+            )
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/events/today', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'events_today'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'limit' => array('sanitize_callback' => 'absint', 'default' => 6)
+            )
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/topics', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'topics'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/topics/(?P<slug>[a-zA-Z0-9-]+)', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'topic_show'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route(self::NAMESPACE_NAME, '/sun', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array(__CLASS__, 'sun'),
             'permission_callback' => '__return_true'
         ));
 
@@ -142,14 +245,20 @@ final class Jazireh_REST
     public static function home()
     {
         $query = new WP_Query(Jazireh_Settings::featured_news_query_args(3));
-        $videos = Jazireh_YouTube::latest_videos(3);
-        $apod = self::latest_apod_items(1);
+        $videos = Jazireh_YouTube::cached_videos(6);
+        $apod = Jazireh_APOD_Service::cached_home_payload();
         $daily = Jazireh_Daily::latest_posts(1);
         return self::success(array(
-            'sky' => self::sky_payload(true),
+            'sky' => self::home_sky_payload(),
+            'sun' => self::home_sun_payload(),
+            'liveWidgets' => array(
+                'sun' => Jazireh_Widgets::cached_or_last_good('sun', 'Fresh solar imagery is being refreshed; last known good result returned.'),
+                'moon' => Jazireh_Moon_Service::widget(),
+                'earth' => Jazireh_Widgets::cached_or_last_good('earth', 'Fresh NASA EPIC imagery is being refreshed; last known good result returned.'),
+            ),
             'news' => array_map(array(__CLASS__, 'format_news'), $query->posts),
-            'videos' => is_wp_error($videos) ? array() : $videos,
-            'apod' => is_wp_error($apod) || empty($apod[0]) ? null : $apod[0],
+            'videos' => $videos,
+            'apod' => $apod,
             'dailyPost' => !empty($daily[0]) ? $daily[0] : null,
         ));
     }
@@ -159,28 +268,110 @@ final class Jazireh_REST
         return self::success(Jazireh_Settings::get_site_payload());
     }
 
+    public static function widgets()
+    {
+        return self::success(Jazireh_Widgets::registry_payload());
+    }
+
+    public static function widget_apod(WP_REST_Request $request)
+    {
+        $limit = min(max((int) $request->get_param('limit'), 1), 20);
+        return self::success(Jazireh_APOD_Service::widget($limit));
+    }
+
+    public static function widget_sun()
+    {
+        return self::success(Jazireh_Sun_Service::widget());
+    }
+
+    public static function widget_moon()
+    {
+        return self::success(Jazireh_Moon_Service::widget());
+    }
+
+    public static function widget_sky()
+    {
+        return self::success(Jazireh_Sky_Service::widget());
+    }
+
+    public static function widget_earth()
+    {
+        return self::success(Jazireh_Earth_Service::widget());
+    }
+
+    public static function widget_earthquakes()
+    {
+        return self::success(Jazireh_Earthquake_Service::widget());
+    }
+
     public static function apod(WP_REST_Request $request)
     {
         $limit = min(max((int) $request->get_param('limit'), 1), 20);
-        $items = self::latest_apod_items($limit);
-        if (is_wp_error($items)) {
-            return $items;
-        }
+        $items = Jazireh_APOD_Service::cached_items($limit);
         return self::success($items);
     }
 
     public static function sky()
     {
-        return self::success(self::sky_payload(false));
+        return self::success(Jazireh_Sky_Service::sky_today_payload());
+    }
+
+    public static function planets()
+    {
+        return self::success(Jazireh_Planets::payload());
+    }
+
+    public static function search(WP_REST_Request $request)
+    {
+        return self::success(Jazireh_Search::search($request));
+    }
+
+    public static function events(WP_REST_Request $request)
+    {
+        $has_science_params = $request->get_param('limit') !== null || $request->get_param('days') !== null;
+        if ($has_science_params) {
+            $limit = min(max((int) ($request->get_param('limit') ?: 12), 1), 24);
+            $days = min(max((int) ($request->get_param('days') ?: 90), 7), 365);
+            return self::success(Jazireh_Events::payload($limit, $days));
+        }
+
+        return self::success(Jazireh_Events::query_events(array(
+            'status' => $request->get_param('status'),
+            'type' => $request->get_param('type'),
+            'page' => $request->get_param('page'),
+            'per_page' => $request->get_param('per_page'),
+        )));
+    }
+
+    public static function events_today(WP_REST_Request $request)
+    {
+        $limit = min(max((int) $request->get_param('limit'), 1), 8);
+        return self::success(Jazireh_Events::today($limit));
+    }
+
+    public static function topics()
+    {
+        return self::success(Jazireh_Topics::all());
+    }
+
+    public static function topic_show(WP_REST_Request $request)
+    {
+        $topic = Jazireh_Topics::find($request['slug']);
+        if (!$topic) {
+            return new WP_Error('jazireh_topic_not_found', 'پرونده علمی پیدا نشد.', array('status' => 404));
+        }
+        return self::success($topic);
+    }
+
+    public static function sun()
+    {
+        return self::success(Jazireh_Sun::latest());
     }
 
     public static function videos(WP_REST_Request $request)
     {
         $limit = min(max((int) $request->get_param('limit'), 1), 10);
-        $videos = Jazireh_YouTube::latest_videos($limit);
-        if (is_wp_error($videos)) {
-            return $videos;
-        }
+        $videos = Jazireh_YouTube::cached_videos($limit);
         return self::success($videos);
     }
 
@@ -229,6 +420,8 @@ final class Jazireh_REST
         $terms = wp_get_post_terms($post->ID, Jazireh_News::TAXONOMY);
         $category = !is_wp_error($terms) && !empty($terms) ? $terms[0]->name : 'نجوم';
         $image = get_the_post_thumbnail_url($post->ID, 'large');
+        $author_id = (int) $post->post_author;
+        $author_name = $author_id ? get_the_author_meta('display_name', $author_id) : '';
         return array(
             'id' => (int) $post->ID,
             'slug' => $post->post_name,
@@ -239,151 +432,51 @@ final class Jazireh_REST
             'category' => $category,
             'readingTime' => get_post_meta($post->ID, Jazireh_News::META_READING_TIME, true) ?: '۵ دقیقه',
             'featured' => get_post_meta($post->ID, Jazireh_News::META_FEATURED, true) === '1',
-            'publishedAt' => get_post_time(DATE_ATOM, true, $post)
+            'author' => $author_name ?: '',
+            'translator' => get_post_meta($post->ID, Jazireh_News::META_TRANSLATOR, true) ?: '',
+            'sourceName' => get_post_meta($post->ID, Jazireh_News::META_SOURCE_NAME, true) ?: '',
+            'sourceUrl' => get_post_meta($post->ID, Jazireh_News::META_SOURCE_URL, true) ?: '',
+            'publishedAt' => get_post_time(DATE_ATOM, true, $post),
+            'updatedAt' => get_post_modified_time(DATE_ATOM, true, $post)
         );
     }
 
     private static function sky_payload($for_home = false)
     {
-        $settings = get_option(Jazireh_Settings::OPTION_NAME, array());
-        $location = self::setting_value($settings, 'default_city', 'تهران');
-        if ($location === 'تهران') {
-            $location = 'تهران، ایران';
-        }
-
-        $payload = array(
-            'id' => 1,
-            'location' => $location,
-            'latitude' => self::setting_value($settings, 'default_latitude', '35.6892'),
-            'longitude' => self::setting_value($settings, 'default_longitude', '51.3890'),
-            'temperature' => 24,
-            'condition' => 'آسمان صاف',
-            'humidity' => 32,
-            'wind' => '8.00',
-            'pressure' => 1016,
-            'visibility' => '9.40',
-            'moonPhase' => 'هلال افزایشی',
-            'moonIllumination' => '29.00',
-            'moonAge' => '5.00',
-            'sunrise' => '۰۴:۵۶',
-            'sunset' => '۱۹:۳۱',
-            'bestTime' => '۲۲:۳۰ تا ۰۳:۳۰',
-            'seeing' => '7.0',
-            'transparency' => '8.5',
-            'events' => array(
-                array(
-                    'title' => 'هم‌نشینی ماه و زهره',
-                    'time' => '۱۹:۵۰',
-                    'detail' => 'فاصله زاویه‌ای تقریبی ۱٫۸ درجه',
-                ),
-                array(
-                    'title' => 'بارش شهابی اتا دلوی',
-                    'time' => '۰۲:۳۰',
-                    'detail' => 'بهترین مشاهده در افق جنوب‌شرقی',
-                ),
-                array(
-                    'title' => 'عبور ایستگاه فضایی',
-                    'time' => '۲۳:۲۱',
-                    'detail' => 'قابل مشاهده برای حدود چهار دقیقه',
-                ),
-            ),
-            'observed_at' => '2026-08-04 15:41:46',
-        );
-
-        if ($for_home) {
-            unset($payload['id'], $payload['latitude'], $payload['longitude'], $payload['moonAge'], $payload['seeing'], $payload['events']);
-        }
-
-        return $payload;
+        return Jazireh_Astronomy::sky_payload($for_home);
     }
 
     private static function latest_apod_items($limit)
     {
-        $cache_key = 'jazireh_apod_latest_range_' . $limit;
-        $cached = get_transient($cache_key);
-        if (is_array($cached)) {
-            return $cached;
-        }
-
-        $api_key = self::nasa_api_key();
-        $end_timestamp = current_time('timestamp', true);
-        $end_date = gmdate('Y-m-d', $end_timestamp);
-        $start_date = gmdate('Y-m-d', strtotime('-' . ($limit - 1) . ' days', $end_timestamp));
-        $url = add_query_arg(array(
-            'api_key' => $api_key,
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'thumbs' => 'true',
-        ), 'https://api.nasa.gov/planetary/apod');
-
-        $response = wp_remote_get($url, array('timeout' => 12));
-        if (is_wp_error($response)) {
-            return new WP_Error('jazireh_apod_request_failed', $response->get_error_message(), array('status' => 502));
-        }
-
-        $status = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-        if (!empty($data['error']['message'])) {
-            return new WP_Error('jazireh_apod_api_error', sanitize_text_field($data['error']['message']), array('status' => 502));
-        }
-        if ($status < 200 || $status >= 300 || !is_array($data)) {
-            return new WP_Error('jazireh_apod_bad_response', 'NASA APOD API returned an invalid response.', array('status' => 502));
-        }
-
-        if (isset($data['date'])) {
-            $data = array($data);
-        }
-
-        $items = array_values(array_map(array(__CLASS__, 'format_apod'), $data));
-        usort($items, array(__CLASS__, 'sort_apod_desc'));
-        set_transient($cache_key, $items, 6 * HOUR_IN_SECONDS);
-        return $items;
+        return Jazireh_APOD_Service::latest_items($limit);
     }
 
-    private static function nasa_api_key()
+    private static function home_sun_payload()
     {
-        $settings = get_option(Jazireh_Settings::OPTION_NAME, array());
-        if (is_array($settings) && !empty($settings['nasa_api_key'])) {
-            return (string) $settings['nasa_api_key'];
-        }
-        if (defined('JAZIREH_NASA_API_KEY') && JAZIREH_NASA_API_KEY) {
-            return JAZIREH_NASA_API_KEY;
-        }
-        if (defined('NASA_API_KEY') && NASA_API_KEY) {
-            return NASA_API_KEY;
-        }
-        $env_key = getenv('NASA_API_KEY');
-        return $env_key ?: 'DEMO_KEY';
-    }
-
-    private static function format_apod($item)
-    {
-        $media_type = sanitize_key(isset($item['media_type']) ? $item['media_type'] : 'image');
-        $image = '';
-        if ($media_type === 'video') {
-            $image = isset($item['thumbnail_url']) ? esc_url_raw($item['thumbnail_url']) : '';
-        } else {
-            $image = isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : (isset($item['url']) ? esc_url_raw($item['url']) : '');
-        }
-        $content = isset($item['explanation']) ? wp_strip_all_tags($item['explanation']) : '';
-
+        $widget = Jazireh_Widgets::cached_or_last_good('sun', 'Fresh solar imagery is being refreshed; last known good result returned.');
+        $data = is_array($widget) && !empty($widget['data']) && is_array($widget['data']) ? $widget['data'] : array();
         return array(
-            'id' => isset($item['date']) ? abs(crc32((string) $item['date'])) : 0,
-            'date' => sanitize_text_field(isset($item['date']) ? $item['date'] : ''),
-            'title' => html_entity_decode(wp_strip_all_tags(isset($item['title']) ? $item['title'] : 'NASA APOD'), ENT_QUOTES, 'UTF-8'),
-            'image' => $image,
-            'mediaType' => $media_type,
-            'content' => $content,
-            'excerpt' => wp_trim_words($content, 32, '...'),
-            'photographer' => sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : 'NASA'),
-            'sourceUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+            'status' => is_array($widget) ? (string) ($widget['status'] ?? 'stale') : 'stale',
+            'title' => (string) ($data['title'] ?? 'خورشید اکنون'),
+            'image' => (string) ($data['image'] ?? ($data['fallbackImage'] ?? '')),
+            'fallbackImage' => (string) ($data['fallbackImage'] ?? ''),
+            'sourceName' => (string) ($data['source'] ?? ($widget['source'] ?? '')),
+            'sourceUrl' => (string) ($data['sourceUrl'] ?? ($widget['sourceUrl'] ?? '')),
+            'wavelength' => (string) ($data['wavelength'] ?? '304 Å'),
+            'observedAt' => (string) ($data['observedAt'] ?? ''),
+            'isFallback' => !is_array($widget) || (string) ($widget['status'] ?? '') !== Jazireh_Widgets::STATE_READY,
+            'displayWarning' => (string) ($data['displayWarning'] ?? ($widget['message'] ?? '')),
         );
     }
 
-    private static function sort_apod_desc($left, $right)
+    private static function home_sky_payload()
     {
-        return strcmp((string) $right['date'], (string) $left['date']);
+        return Jazireh_Sky_Service::compatibility_payload(true);
+    }
+
+    private static function home_apod_payload()
+    {
+        return Jazireh_APOD_Service::cached_home_payload();
     }
 
     private static function setting_value($settings, $key, $default = '')

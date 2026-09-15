@@ -1,21 +1,28 @@
-import { Home, Telescope, Newspaper, Sparkles, Clapperboard } from 'lucide-react'
+import { CalendarDays, Home, Search, Telescope, Newspaper, Sparkles, Clapperboard } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 
 const icons = {
+  calendar: CalendarDays,
   home: Home,
+  search: Search,
   sparkles: Sparkles,
   telescope: Telescope,
   newspaper: Newspaper,
   clapperboard: Clapperboard
 }
 
+const requiredMobileItems = [
+  { label: 'رویدادها', path: '/events', url: '/events', external: false, target: '', icon: 'calendar' },
+  { label: 'جستجو', path: '/search', url: '/search', external: false, target: '', icon: 'search' }
+]
+
 export default function MobileNav() {
   const { settings } = useSiteSettings()
-  const items = (settings.menus.mobile || []).filter((item) => !item.external).slice(0, 5)
+  const items = withRequiredLinks((settings.menus.mobile || []).filter((item) => !item.external))
 
   return (
-    <nav className="mobile-nav-bar md:hidden" aria-label="پیمایش سریع موبایل">
+    <nav className="mobile-nav-bar md:hidden" aria-label="پیمایش سریع موبایل" style={{ '--mobile-nav-count': items.length }}>
       {items.map(({ label, path, url, icon }) => {
         const Icon = icons[icon] || Home
         return (
@@ -27,4 +34,12 @@ export default function MobileNav() {
       })}
     </nav>
   )
+}
+
+function withRequiredLinks(items) {
+  const existing = new Set(items.map((item) => item.path || item.url))
+  return [
+    ...items,
+    ...requiredMobileItems.filter((item) => !existing.has(item.path))
+  ]
 }

@@ -31,7 +31,7 @@ export default function Hero({ sky = skyData }) {
   return (
     <section className="home-hero relative overflow-hidden">
       {isImageHero ? (
-        <img src={heroImage} alt={hero.title} className="home-hero-video" fetchPriority="high" />
+        <img src={heroImage} alt={hero.title} className="home-hero-video" fetchpriority="high" />
       ) : (
         <video className="home-hero-video" autoPlay muted loop playsInline preload="metadata" poster={heroImage}>
           <source src={heroVideo} type="video/mp4" />
@@ -79,10 +79,11 @@ export default function Hero({ sky = skyData }) {
               <CloudMoon className="h-8 w-8 text-sky-300" />
             </div>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <HeroMetric label="دما" value={`${sky.temperature}°`} accent="orange" />
+              <HeroMetric label="هوا" value={sky.temperature === null || sky.temperature === undefined ? 'ناموجود' : `${sky.temperature}°`} accent="orange" />
               <HeroMetric label="وضعیت" value={sky.condition} accent="blue" />
-              <HeroMetric label="رصد" value={sky.bestTime} accent="purple" />
+              <HeroMetric label="رصد" value={sky.bestTime || 'ناموجود'} accent="purple" />
             </div>
+            {sky.displayWarning ? <p className="mt-3 text-xs leading-6 text-slate-400">{sky.displayWarning}</p> : null}
           </div>
         </div>
       </div>

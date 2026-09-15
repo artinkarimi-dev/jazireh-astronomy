@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpLeft, Images } from 'lucide-react'
+import { ArrowRight, ArrowUpLeft, ImageIcon, Images } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta'
@@ -41,15 +41,13 @@ export default function JazirehDailyDetailsPage() {
           <h1 className="article-title mt-4 font-black text-white">{item.title}</h1>
           <p className="article-lead mt-6 font-medium text-slate-200">{item.excerpt}</p>
 
-          {!!item.images?.length && (
-            <div className="mt-8 space-y-4">
-              {item.images.map((image) => (
-                <div key={image.id || image.url} className="overflow-hidden rounded-[24px] border border-white/[.08] bg-black/20">
-                  <img src={image.url} alt={image.alt || item.title} className="h-auto w-full object-cover" loading="lazy" decoding="async" />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="daily-detail-media-stack mt-8">
+            {resolvedMediaItems(item).map((image) => (
+              <div key={image.id || image.url || image.type} className="daily-detail-media-frame">
+                <DailyDetailImage image={image} title={item.title} />
+              </div>
+            ))}
+          </div>
 
           <div className="article-content mt-8 border-t border-white/[.07] pt-7 text-base leading-9 text-slate-400">
             {String(item.text || '').split('\n').filter(Boolean).map((paragraph, index) => <p key={`${item.id}-${index}`}>{paragraph}</p>)}
@@ -71,4 +69,36 @@ export default function JazirehDailyDetailsPage() {
       </div>
     </article>
   )
+}
+
+function resolvedMediaItems(item) {
+  if (item.images?.length) return item.images
+  if (item.media?.thumbnail) return [{ url: item.media.thumbnail, alt: item.title, type: item.media.type }]
+
+  const derived = youtubeThumbnailFromUrl(item.sourceUrl)
+  if (derived) return [{ url: derived, alt: item.title, type: item.sourceUrl?.includes('/shorts/') ? 'youtube-short' : 'youtube-video' }]
+
+  return [{ url: '', alt: item.title, type: 'none' }]
+}
+
+function DailyDetailImage({ image, title }) {
+  const [failed, setFailed] = useState(false)
+
+  if (!image?.url || failed) {
+    return <div className="daily-media-fallback min-h-[220px]"><ImageIcon className="h-9 w-9 text-amber-200/80" /><span>رسانه‌ای برای این پست ثبت نشده است</span></div>
+  }
+
+  return <img src={image.url} alt={image.alt || title} className={`daily-detail-image ${image.type === 'youtube-short' ? 'daily-detail-image-short' : ''}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+}
+
+function youtubeThumbnailFromUrl(url = '') {
+  const value = String(url)
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+    /[?&]v=([A-Za-z0-9_-]{6,})/,
+  ]
+  const match = patterns.map((pattern) => value.match(pattern)?.[1]).find(Boolean)
+  return match ? `https://i.ytimg.com/vi/${encodeURIComponent(match)}/hqdefault.jpg` : ''
 }

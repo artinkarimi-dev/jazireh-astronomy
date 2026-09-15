@@ -1,36 +1,164 @@
-import { useMemo, useState } from 'react'
 import { Maximize2, RotateCcw } from 'lucide-react'
+import { altitudeLabel, directionLabel, toFaNumber } from '../../lib/skyTonight'
 
-const constellations = [
-  { name: 'دب اکبر', points: [[19,30],[27,27],[35,31],[42,38],[51,35],[61,37],[70,32]] },
-  { name: 'ذات‌الکرسی', points: [[62,20],[68,15],[74,22],[80,16],[86,23]] },
-  { name: 'جبار', points: [[38,57],[44,48],[50,58],[46,69],[52,76],[58,67],[54,55]] },
-  { name: 'ثور', points: [[65,55],[72,49],[78,54],[72,59],[82,66]] },
-  { name: 'اسد', points: [[20,66],[26,60],[32,63],[35,71],[29,77],[22,75]] }
-]
+const DEG = Math.PI / 180
 
-export default function InteractiveSkyMap({ className = '' }) {
-  const [selected, setSelected] = useState('جبار')
-  const stars = useMemo(() => Array.from({ length: 90 }, (_, i) => ({ x: (i * 37.7) % 96 + 2, y: (i * 53.3) % 90 + 4, r: i % 11 === 0 ? 1.6 : i % 4 === 0 ? 1.05 : .65, o: .35 + (i % 6) * .1 })), [])
+export default function InteractiveSkyMap({
+  className = '',
+  model,
+  selectedObjectId,
+  onSelectObject,
+  onResetSelection,
+  onFullscreen,
+  showConstellations = true,
+  nightMode = false,
+}) {
+  const allObjects = Array.isArray(model?.objects) ? model.objects : []
+  const objects = allObjects.filter((item) => item.altitude > -2)
+  const stars = objects.filter((item) => item.type === 'star')
+  const prominentObjects = objects.filter((item) => item.type !== 'star')
+  const selected = allObjects.find((item) => item.id === selectedObjectId) || prominentObjects.find((item) => item.visible) || objects[0]
+  const constellations = Array.isArray(model?.constellations) ? model.constellations : []
+
   return (
-    <div className={`relative overflow-hidden rounded-3xl border border-white/10 bg-[#020b19] ${className}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(37,99,235,.18),transparent_55%)]" />
-      <svg viewBox="0 0 100 80" className="relative h-full min-h-[300px] w-full sm:min-h-[360px] md:min-h-[420px]" role="img" aria-label="نقشه تعاملی صورت‌های فلکی">
-        <defs><radialGradient id="starGlow"><stop offset="0" stopColor="#fff" /><stop offset=".3" stopColor="#bfdbfe" /><stop offset="1" stopColor="#60a5fa" stopOpacity="0" /></radialGradient></defs>
-        {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#dbeafe" opacity={s.o} />)}
-        {constellations.map((c) => {
-          const active = selected === c.name
-          return <g key={c.name} onClick={() => setSelected(c.name)} className="cursor-pointer">
-            <polyline points={c.points.map((p) => p.join(',')).join(' ')} fill="none" stroke={active ? '#93c5fd' : '#334155'} strokeWidth={active ? '.35' : '.18'} opacity={active ? .95 : .65} />
-            {c.points.map((p, i) => <g key={i}><circle cx={p[0]} cy={p[1]} r={active ? 1.8 : 1.3} fill="url(#starGlow)" /><circle cx={p[0]} cy={p[1]} r={active ? .45 : .28} fill="#fff" /></g>)}
-            <text x={c.points[0][0]} y={c.points[0][1]-3} fill={active ? '#bfdbfe' : '#64748b'} fontSize="2.2" textAnchor="middle">{c.name}</text>
-          </g>
+    <div className={`sky-map-shell ${nightMode ? 'sky-map-night' : ''} ${className}`}>
+      <div className="sky-map-glow" />
+      <svg viewBox="0 0 100 100" className="sky-map-svg" role="img" aria-label="نقشه تعاملی آسمان امشب با موقعیت تقریبی اجرام">
+        <defs>
+          <radialGradient id="skyDomeGlow" cx="50%" cy="50%" r="52%">
+            <stop offset="0" stopColor="#1d4ed8" stopOpacity=".2" />
+            <stop offset=".62" stopColor="#020617" stopOpacity=".95" />
+            <stop offset="1" stopColor="#01030a" />
+          </radialGradient>
+          <filter id="softObjectGlow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="1.6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <circle cx="50" cy="50" r="45" fill="url(#skyDomeGlow)" stroke="rgba(125,211,252,.25)" strokeWidth=".35" />
+        {[15, 30, 45].map((radius) => (
+          <circle key={radius} cx="50" cy="50" r={radius} fill="none" stroke="rgba(148,163,184,.13)" strokeWidth=".22" />
+        ))}
+        <line x1="50" y1="5" x2="50" y2="95" stroke="rgba(148,163,184,.12)" strokeWidth=".18" />
+        <line x1="5" y1="50" x2="95" y2="50" stroke="rgba(148,163,184,.12)" strokeWidth=".18" />
+
+        {showConstellations ? constellations.map((constellation) => (
+          <Constellation key={constellation.id} constellation={constellation} />
+        )) : null}
+
+        {stars.map((star) => {
+          const point = project(star.altitude, star.azimuth)
+          const active = star.id === selectedObjectId
+          const radius = Math.max(.42, Math.min(1.35, 1.7 - (star.mag || 2) * .25))
+          return (
+            <g
+              key={star.id}
+              role="button"
+              tabIndex="0"
+              className="sky-object-button"
+              aria-label={`${star.name}، ${star.typeLabel}`}
+              onClick={() => onSelectObject?.(star.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') onSelectObject?.(star.id)
+              }}
+            >
+              <circle cx={point.x} cy={point.y} r={active ? radius + .9 : radius} fill={active ? '#fde68a' : '#dbeafe'} opacity={active ? 1 : .78} />
+            </g>
+          )
         })}
-        <path d="M2 78 Q50 63 98 78" fill="#020814" opacity=".9" />
+
+        {prominentObjects.map((object) => {
+          const point = project(object.altitude, object.azimuth)
+          const active = object.id === selectedObjectId
+          const isSun = object.type === 'sun'
+          const isMoon = object.type === 'moon'
+          const size = isSun ? 2.8 : isMoon ? 2.25 : 1.85
+          return (
+            <g
+              key={object.id}
+              role="button"
+              tabIndex="0"
+              className="sky-object-button"
+              aria-label={`${object.name}، ${object.typeLabel}`}
+              onClick={() => onSelectObject?.(object.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') onSelectObject?.(object.id)
+              }}
+            >
+              <circle cx={point.x} cy={point.y} r={active ? size + 1.15 : size} fill={object.color || '#7dd3fc'} opacity={object.altitude > 0 ? 1 : .45} filter="url(#softObjectGlow)" />
+              <circle cx={point.x - size / 3} cy={point.y - size / 3} r={Math.max(.35, size / 3)} fill="#fff" opacity=".48" />
+              <text x={point.x} y={point.y + size + 4.2} textAnchor="middle" fill={active ? '#fde68a' : '#cbd5e1'} fontSize="2.35" fontWeight={active ? '700' : '500'}>
+                {object.name}
+              </text>
+            </g>
+          )
+        })}
+
+        <text x="50" y="8" textAnchor="middle" className="sky-compass-label">شمال</text>
+        <text x="93" y="51" textAnchor="middle" className="sky-compass-label">شرق</text>
+        <text x="50" y="95" textAnchor="middle" className="sky-compass-label">جنوب</text>
+        <text x="7" y="51" textAnchor="middle" className="sky-compass-label">غرب</text>
+        <text x="50" y="50.9" textAnchor="middle" className="sky-zenith-label">سمت‌الرأس</text>
       </svg>
-      <div className="absolute right-3 top-3 rounded-xl border border-blue-400/20 bg-space-950/80 px-3 py-2 backdrop-blur sm:right-5 sm:top-5 sm:px-4 sm:py-3"><span className="text-[10px] text-slate-500">صورت فلکی انتخاب‌شده</span><strong className="mt-1 block text-sm text-blue-200">{selected}</strong></div>
-      <div className="absolute bottom-3 left-3 flex gap-2 sm:bottom-5 sm:left-5"><button type="button" className="icon-button" aria-label="بازنشانی نما"><RotateCcw className="h-4 w-4" /></button><button type="button" className="icon-button" aria-label="بزرگ‌نمایی"><Maximize2 className="h-4 w-4" /></button></div>
-      <div className="absolute bottom-3 right-3 flex gap-3 text-[10px] text-slate-500 sm:bottom-5 sm:right-5 sm:gap-5 sm:text-xs"><span>شرق</span><span className="text-blue-300">جنوب</span><span>غرب</span></div>
+
+      <div className="sky-map-readout">
+        <span className="text-[10px] text-slate-500">جرم انتخاب‌شده</span>
+        <strong>{selected?.name || 'جرمی انتخاب نشده'}</strong>
+        {selected ? (
+          <p>
+            {selected.typeLabel}، ارتفاع {toFaNumber(selected.altitude.toFixed(1))} درجه، جهت {directionLabel(selected.azimuth)}.
+            {' '}{altitudeLabel(selected.altitude)}
+          </p>
+        ) : <p>برای دیدن جزئیات، یکی از نقاط آسمان را انتخاب کنید.</p>}
+      </div>
+
+      <div className="sky-map-actions">
+        <button type="button" className="icon-button" aria-label="بازنشانی انتخاب نقشه" onClick={onResetSelection}>
+          <RotateCcw className="h-4 w-4" />
+        </button>
+        <button type="button" className="icon-button" aria-label="نمای تمام‌صفحه نقشه" onClick={onFullscreen}>
+          <Maximize2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="sky-map-note">موقعیت‌ها تقریبی و برای راهنمای رصد عمومی هستند.</div>
     </div>
   )
+}
+
+function Constellation({ constellation }) {
+  const points = constellation.points
+    .filter((star) => star.altitude > -5)
+    .map((star) => ({ ...star, point: project(star.altitude, star.azimuth) }))
+
+  if (points.length < 2) return null
+  const first = points[0]
+
+  return (
+    <g opacity={constellation.visible ? .9 : .42}>
+      <polyline
+        points={points.map((star) => `${star.point.x},${star.point.y}`).join(' ')}
+        fill="none"
+        stroke={constellation.visible ? 'rgba(147,197,253,.62)' : 'rgba(100,116,139,.58)'}
+        strokeWidth=".28"
+      />
+      {points.map((star) => <circle key={star.id} cx={star.point.x} cy={star.point.y} r=".7" fill="#bfdbfe" />)}
+      <text x={first.point.x} y={first.point.y - 3} textAnchor="middle" fill="#93c5fd" fontSize="2.2">
+        {constellation.name}
+      </text>
+    </g>
+  )
+}
+
+function project(altitude, azimuth) {
+  const radius = Math.max(0, Math.min(1, (90 - altitude) / 90)) * 44
+  const angle = azimuth * DEG
+  return {
+    x: 50 + Math.sin(angle) * radius,
+    y: 50 - Math.cos(angle) * radius,
+  }
 }

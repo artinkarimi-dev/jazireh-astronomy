@@ -24,7 +24,10 @@ export default function ExplorePage() {
     return () => { active = false }
   }, [])
 
-  const filtered = useMemo(() => filter === 'همه' ? objects : objects.filter((item) => item.type.includes(filter)), [filter, objects])
+  const filtered = useMemo(() => {
+    const source = Array.isArray(objects) ? objects : []
+    return filter === 'همه' ? source : source.filter((item) => String(item.type || '').includes(filter))
+  }, [filter, objects])
   useEffect(() => {
     if (selected && !filtered.some((item) => item.id === selected.id)) setSelected(filtered[0] || null)
   }, [filtered, selected])

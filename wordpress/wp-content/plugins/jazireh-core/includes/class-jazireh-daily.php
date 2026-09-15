@@ -233,6 +233,8 @@ final class Jazireh_Daily
             );
         }
 
+        $media = self::media_payload($post, $images);
+
         return array(
             'id' => (int) $post->ID,
             'slug' => $post->post_name,
@@ -244,7 +246,68 @@ final class Jazireh_Daily
             'publishedAt' => (string) get_post_meta($post->ID, self::META_SOURCE_PUBLISHED_AT, true) ?: get_post_time(DATE_ATOM, true, $post),
             'publishedLabel' => (string) get_post_meta($post->ID, self::META_SOURCE_PUBLISHED_LABEL, true),
             'images' => $images,
+            'media' => $media,
         );
+    }
+
+    private static function media_payload(WP_Post $post, array $images)
+    {
+        $source_url = (string) get_post_meta($post->ID, self::META_SOURCE_URL, true);
+        if (!empty($images[0]['url'])) {
+            return array(
+                'type' => 'image',
+                'url' => $images[0]['url'],
+                'thumbnail' => $images[0]['url'],
+                'width' => (int) ($images[0]['width'] ?? 0),
+                'height' => (int) ($images[0]['height'] ?? 0),
+                'alt' => (string) ($images[0]['alt'] ?? ''),
+                'sourceUrl' => esc_url_raw($source_url),
+            );
+        }
+
+        $youtube_id = self::youtube_id($source_url);
+        if ($youtube_id) {
+            $is_short = strpos($source_url, '/shorts/') !== false;
+            return array(
+                'type' => $is_short ? 'youtube-short' : 'youtube-video',
+                'url' => esc_url_raw($source_url),
+                'thumbnail' => 'https://i.ytimg.com/vi/' . rawurlencode($youtube_id) . '/hqdefault.jpg',
+                'youtubeId' => $youtube_id,
+                'aspectRatio' => $is_short ? '9/16' : '16/9',
+                'sourceUrl' => esc_url_raw($source_url),
+            );
+        }
+
+        return array(
+            'type' => 'none',
+            'url' => '',
+            'thumbnail' => '',
+            'sourceUrl' => esc_url_raw($source_url),
+        );
+    }
+
+    private static function youtube_id($url)
+    {
+        $url = (string) $url;
+        if ($url === '') {
+            return '';
+        }
+
+        $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
+        $path = (string) wp_parse_url($url, PHP_URL_PATH);
+        $query = (string) wp_parse_url($url, PHP_URL_QUERY);
+
+        if (strpos($host, 'youtu.be') !== false) {
+            return sanitize_text_field(trim($path, '/'));
+        }
+        if (strpos($host, 'youtube.com') === false) {
+            return '';
+        }
+        if (preg_match('#/(?:shorts|embed)/([a-zA-Z0-9_-]{6,})#', $path, $matches)) {
+            return sanitize_text_field($matches[1]);
+        }
+        parse_str($query, $params);
+        return !empty($params['v']) ? sanitize_text_field((string) $params['v']) : '';
     }
 
     public static function integrations_panel()

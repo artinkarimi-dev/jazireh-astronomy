@@ -1,119 +1,104 @@
 # Project Architecture
 
-## Current Runtime Shape
+## Final runtime shape
 
-```mermaid
-flowchart TD
-    A[Browser] --> B[WordPress Theme Shell<br/>jazireh-theme]
-    B --> C[React + Vite App]
-    C --> D[WordPress REST API<br/>jazireh-core]
-    D --> E[WordPress DB / Media / Settings]
-    D --> F[NASA APOD API]
-    D --> G[YouTube Data API]
-    H[External Community Sync Adapter] --> I[Signed jazireh-daily-sync Endpoint]
-    I --> E
+```text
+Browser
+  |
+  v
+WordPress theme shell (jazireh-theme)
+  |
+  v
+React + Vite app
+  |
+  v
+WordPress REST API (jazireh-core)
+  |\
+  | +--> WordPress database and media
+  |
+  +----> NASA APOD API / YouTube API
 ```
 
-The active application is WordPress-first. React is bundled into the custom theme, and all public data flows through the `jazireh/v1` REST namespace implemented in the `jazireh-core` plugin.
+The live application is a WordPress-first deployment. React is bundled into the custom theme and uses the custom WordPress REST namespace `jazireh/v1`.
 
-## Source Layout
+## Source layout
 
-- `frontend/`: React source, Vite config, brand assets, and frontend build pipeline
-- `wordpress/wp-content/themes/jazireh-theme/`: theme shell, SPA routing integration, and tracked build output
-- `wordpress/wp-content/plugins/jazireh-core/`: content models, settings, admin surfaces, REST endpoints, and external integrations
-- `tools/community-sync/`: external Node-based extraction and ingestion tooling for Jazireh Daily / YouTube Community posts
+- `frontend/`: React source, Vite config, static brand assets, and generated build output
+- `wordpress/wp-content/themes/jazireh-theme/`: WordPress theme that serves the React shell and runtime config
+- `wordpress/wp-content/plugins/jazireh-core/`: content types, settings, admin integrations, and custom REST endpoints
+- `database/`: legacy archive assets and SQL exports kept for rollback/reference
+- `archive/backend-retired-2026-08-19/`: retired standalone backend kept only as rollback/archive material
 
-The repository intentionally excludes WordPress core, the live database, and runtime uploads.
-
-## Frontend Responsibilities
+## Frontend responsibilities
 
 The React app handles:
 
 - public routing
 - page rendering
-- the interactive public experience for Home, News, Videos, APOD, Sky, Explore, Radar, and Jazireh Daily
-- runtime API resolution through `frontend/src/lib/api.js`
-- route-based bundle splitting via `React.lazy()`
+- interactive Explore and Radar experiences
+- WordPress REST consumption through `frontend/src/lib/api.js`
 
-Logical frontend paths like `/api/news` remain as internal client abstractions, but in runtime they resolve to WordPress REST when `WORDPRESS_API_URL` is available.
+The API client is intentionally WordPress-only. Logical paths such as `/api/news` still exist inside the frontend codebase, but they are resolved to the active WordPress REST base URL at runtime.
 
-## Theme Responsibilities
+## Theme responsibilities
 
 `jazireh-theme` is responsible for:
 
-- serving the root React shell inside WordPress
-- enqueuing the current Vite build from the generated manifest
-- exposing runtime configuration through `window.JAZIREH_WP`
-- routing SPA paths such as `/news`, `/videos`, `/apod`, `/sky`, `/explore`, `/radar`, and `/jazireh-daily`
-- handing admin/login authority back to native WordPress
+- serving the root React shell
+- enqueuing the current Vite manifest entrypoints
+- exposing runtime config with `window.JAZIREH_WP`
+- routing public SPA paths such as `/news`, `/videos`, `/apod`, `/jazireh-daily`, `/sky`, `/explore`, and `/radar`
+- redirecting `/admin` and `/admin/login` into native WordPress auth
 
-Tracking the built `dist/` assets inside the theme keeps deployment simple for shared hosting and WordPress-centric environments where rebuilding on the server is not desirable.
-
-## Plugin Responsibilities
+## Plugin responsibilities
 
 `jazireh-core` is responsible for:
 
-- WordPress custom post types and metadata for news, objects, and Jazireh Daily
-- site, branding, social, and homepage settings
-- newsletter subscription persistence
-- custom admin experiences for project content/configuration
-- public REST endpoints under `wp-json/jazireh/v1`
-- server-side NASA APOD integration
-- server-side YouTube latest-video integration
-- signed Jazireh Daily ingestion and media persistence
+- custom post types and metadata for news and objects
+- newsletter schema and subscription handling
+- WordPress settings used by the site and homepage
+- WordPress admin screens for site management
+- Jazireh REST endpoints under `wp-json/jazireh/v1`
+- server-side integrations for NASA APOD and YouTube latest videos
+- secure ingestion and storage for Jazireh Daily / YouTube Community posts
 
-## External Integration Boundaries
+## External integration boundaries
 
-### NASA APOD
+Latest videos and Community posts do not share the same upstream architecture:
 
-- fetched server-side from WordPress
-- uses a rolling date range ending on the current day
-- cached in transients for six hours
-- sorted newest to oldest before being returned to React
+- Latest videos use the official YouTube Data API server-side inside WordPress.
+- Jazireh Community post extraction is intentionally external to WordPress page requests because there is no supported official public API for modern YouTube Community posts.
+- The public site reads only from WordPress REST and WordPress media after synchronization.
 
-### YouTube latest videos
+As of Wednesday, August 19, 2026, live Community extraction from `https://www.youtube.com/@Jazireh/posts` is not verified in this local environment, but the external adapter, signed ingestion endpoint, WordPress storage, and React presentation layer are implemented.
 
-- uses the official YouTube Data API server-side
-- resolves the channel uploads playlist, then fetches candidate playlist items, then normalizes filtered video details
-- excludes live/upcoming streams and short-form vertical items from the public latest-videos experience
-- keeps both a fresh cache and a last-known-good cache
+Legacy one-time import routines from `jazireh_astronomy` are no longer part of the active production plugin runtime.
 
-### Jazireh Daily / YouTube Community
+## Data model
 
-This flow is intentionally separate from public page requests:
-
-1. an external Node adapter extracts Community content
-2. the adapter signs the payload with HMAC
-3. WordPress validates timestamp and replay state
-4. WordPress stores posts and media locally
-5. React reads the stabilized WordPress content through REST
-
-This design avoids placing brittle extraction logic inside the public PHP request path and gives the site a durable content layer even if upstream Community markup changes later.
-
-## Data Model
-
-The active product state lives in WordPress:
+Active managed content lives in the WordPress database:
 
 - news posts and categories
-- authored celestial objects
-- Jazireh Daily posts
+- celestial objects
+- site settings
 - newsletter subscribers
-- site settings and menus
-- uploaded and synchronized media
+- theme menus
+- uploads/media
 
-There is no active standalone legacy backend in the current runtime architecture.
+The old `jazireh_astronomy` database is no longer required by the active frontend runtime.
 
-## Build and Sync Flow
+## Build and sync flow
 
-1. Edit React source under `frontend/src`
-2. Run `npm run build`
-3. Run `npm run build:wordpress`
-4. Deploy or sync the custom theme and plugin into the target WordPress runtime
-5. Keep database content, uploads, and production secrets on the host environment
+1. Edit React source under `frontend/src`.
+2. Run `npm.cmd run build`.
+3. Run `npm.cmd run build:wordpress`.
+4. Sync the generated theme `dist` into the live WordPress theme.
+5. Sync any touched custom theme/plugin PHP files into the live WordPress install.
+6. Smoke-test the live WordPress URLs and REST endpoints.
 
-## Known Boundaries
+## Known boundaries
 
-- Sky currently ships as a static compatibility snapshot rather than a live external weather or observability feed
-- Radar is a simulation, not live scientific telemetry
-- Explore uses curated educational content instead of live astronomy catalog feeds
-- automatic new Jazireh Daily ingestion depends on the external sync adapter being scheduled outside WordPress
+- Sky currently ships as a static compatibility snapshot rather than a live weather feed.
+- Radar is a simulation, not live orbital tracking.
+- Explore uses authored object content rather than live astronomical data feeds.
+- Admin authority is native WordPress; the retired React admin and JWT flow are not part of the final architecture.

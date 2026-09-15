@@ -10,6 +10,9 @@ final class Jazireh_News
     const TAXONOMY = 'jazireh_news_category';
     const META_READING_TIME = '_jazireh_reading_time';
     const META_FEATURED = '_jazireh_featured';
+    const META_SOURCE_NAME = '_jazireh_source_name';
+    const META_SOURCE_URL = '_jazireh_source_url';
+    const META_TRANSLATOR = '_jazireh_translator';
 
     public static function boot()
     {
@@ -80,6 +83,9 @@ final class Jazireh_News
         wp_nonce_field('jazireh_news_save', 'jazireh_news_nonce');
         $reading_time = get_post_meta($post->ID, self::META_READING_TIME, true);
         $featured = get_post_meta($post->ID, self::META_FEATURED, true);
+        $source_name = get_post_meta($post->ID, self::META_SOURCE_NAME, true);
+        $source_url = get_post_meta($post->ID, self::META_SOURCE_URL, true);
+        $translator = get_post_meta($post->ID, self::META_TRANSLATOR, true);
         if ($reading_time === '') {
             $reading_time = '۵ دقیقه';
         }
@@ -93,6 +99,19 @@ final class Jazireh_News
                 <input type="checkbox" name="jazireh_featured" value="1" <?php checked($featured, '1'); ?>>
                 نمایش به‌عنوان خبر ویژه
             </label>
+        </p>
+        <hr>
+        <p>
+            <label for="jazireh_source_name"><strong>نام منبع</strong></label>
+            <input type="text" id="jazireh_source_name" name="jazireh_source_name" value="<?php echo esc_attr($source_name); ?>" class="widefat" placeholder="مثلاً NASA یا ESA">
+        </p>
+        <p>
+            <label for="jazireh_source_url"><strong>لینک منبع</strong></label>
+            <input type="url" id="jazireh_source_url" name="jazireh_source_url" value="<?php echo esc_url($source_url); ?>" class="widefat" placeholder="https://example.com">
+        </p>
+        <p>
+            <label for="jazireh_translator"><strong>مترجم / تنظیم‌کننده</strong></label>
+            <input type="text" id="jazireh_translator" name="jazireh_translator" value="<?php echo esc_attr($translator); ?>" class="widefat" placeholder="نام شخص یا تیم">
         </p>
         <p style="color:#646970;line-height:1.8">عنوان، خلاصه، متن کامل و تصویر شاخص را از بخش‌های اصلی همین صفحه وارد کنید.</p>
         <?php
@@ -113,6 +132,13 @@ final class Jazireh_News
         $reading_time = isset($_POST['jazireh_reading_time']) ? sanitize_text_field(wp_unslash($_POST['jazireh_reading_time'])) : '۵ دقیقه';
         update_post_meta($post_id, self::META_READING_TIME, $reading_time ?: '۵ دقیقه');
         update_post_meta($post_id, self::META_FEATURED, isset($_POST['jazireh_featured']) ? '1' : '0');
+
+        $source_name = isset($_POST['jazireh_source_name']) ? sanitize_text_field(wp_unslash($_POST['jazireh_source_name'])) : '';
+        $source_url = isset($_POST['jazireh_source_url']) ? esc_url_raw(wp_unslash($_POST['jazireh_source_url'])) : '';
+        $translator = isset($_POST['jazireh_translator']) ? sanitize_text_field(wp_unslash($_POST['jazireh_translator'])) : '';
+        update_post_meta($post_id, self::META_SOURCE_NAME, $source_name);
+        update_post_meta($post_id, self::META_SOURCE_URL, $source_url);
+        update_post_meta($post_id, self::META_TRANSLATOR, $translator);
     }
 
     public static function columns($columns)
@@ -123,6 +149,7 @@ final class Jazireh_News
             if ($key === 'title') {
                 $result['jazireh_featured'] = 'ویژه';
                 $result['jazireh_reading_time'] = 'زمان مطالعه';
+                $result['jazireh_source'] = 'منبع';
             }
         }
         return $result;
@@ -135,6 +162,9 @@ final class Jazireh_News
         }
         if ($column === 'jazireh_reading_time') {
             echo esc_html(get_post_meta($post_id, self::META_READING_TIME, true) ?: '۵ دقیقه');
+        }
+        if ($column === 'jazireh_source') {
+            echo esc_html(get_post_meta($post_id, self::META_SOURCE_NAME, true) ?: '—');
         }
     }
 

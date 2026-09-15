@@ -7,11 +7,44 @@ if (!defined('ABSPATH')) {
 final class Jazireh_Settings
 {
     const OPTION_NAME = 'jazireh_settings';
+    const WIDGET_PREWARM_HOOK = 'jazireh_prewarm_observatory_widgets';
 
     public static function boot()
     {
         add_action('admin_init', array(__CLASS__, 'register_settings'));
-        add_action('admin_menu', array(__CLASS__, 'register_settings_page'));
+        add_action('admin_post_jazireh_refresh_widget', array(__CLASS__, 'handle_widget_refresh'));
+        add_filter('cron_schedules', array(__CLASS__, 'cron_schedules'));
+        add_action(self::WIDGET_PREWARM_HOOK, array(__CLASS__, 'prewarm_widgets'));
+        add_action('init', array(__CLASS__, 'maybe_schedule_widget_prewarm'));
+    }
+
+    public static function cron_schedules($schedules)
+    {
+        if (!isset($schedules['jazireh_every_30_minutes'])) {
+            $schedules['jazireh_every_30_minutes'] = array(
+                'interval' => 30 * MINUTE_IN_SECONDS,
+                'display' => __('Every 30 minutes', 'jazireh-core'),
+            );
+        }
+        return $schedules;
+    }
+
+    public static function schedule_widget_prewarm()
+    {
+        add_filter('cron_schedules', array(__CLASS__, 'cron_schedules'));
+        if (!wp_next_scheduled(self::WIDGET_PREWARM_HOOK)) {
+            wp_schedule_event(time() + 5 * MINUTE_IN_SECONDS, 'jazireh_every_30_minutes', self::WIDGET_PREWARM_HOOK);
+        }
+    }
+
+    public static function maybe_schedule_widget_prewarm()
+    {
+        self::schedule_widget_prewarm();
+    }
+
+    public static function clear_widget_prewarm()
+    {
+        wp_clear_scheduled_hook(self::WIDGET_PREWARM_HOOK);
     }
 
     public static function register_settings()
@@ -94,6 +127,9 @@ final class Jazireh_Settings
                 'include_phrases' => 'عکس روز ناسا',
                 'require_image' => '1',
             ),
+            'integrations' => array(
+                'apod_auto_localization' => class_exists('Jazireh_APOD_Localizer') && !empty(Jazireh_APOD_Localizer::provider_health()['configured']) ? '1' : '0',
+            ),
             'contact' => array(
                 'email' => '',
                 'phone' => '',
@@ -162,6 +198,9 @@ final class Jazireh_Settings
         $community = isset($input['community']) && is_array($input['community']) ? $input['community'] : array();
         $output['community']['include_phrases'] = sanitize_textarea_field(self::array_get($community, 'include_phrases', $defaults['community']['include_phrases']));
         $output['community']['require_image'] = self::array_get($community, 'require_image', '1') === '1' ? '1' : '0';
+
+        $integrations = isset($input['integrations']) && is_array($input['integrations']) ? $input['integrations'] : array();
+        $output['integrations']['apod_auto_localization'] = self::array_get($integrations, 'apod_auto_localization', $defaults['integrations']['apod_auto_localization']) === '1' ? '1' : '0';
 
         $contact = isset($input['contact']) && is_array($input['contact']) ? $input['contact'] : array();
         $output['contact']['email'] = sanitize_email(self::array_get($contact, 'email', ''));
@@ -261,6 +300,8 @@ final class Jazireh_Settings
         }
         $refresh_notice = isset($_GET['videos_refresh']) ? sanitize_key(wp_unslash($_GET['videos_refresh'])) : '';
         $refresh_message = isset($_GET['videos_message']) ? sanitize_text_field(wp_unslash($_GET['videos_message'])) : '';
+        $widget_notice = isset($_GET['widget_refresh']) ? sanitize_key(wp_unslash($_GET['widget_refresh'])) : '';
+        $widget_message = isset($_GET['widget_message']) ? sanitize_text_field(wp_unslash($_GET['widget_message'])) : '';
         $news_items = get_posts(array(
             'post_type' => Jazireh_News::POST_TYPE,
             'post_status' => array('publish', 'draft'),
@@ -272,20 +313,31 @@ final class Jazireh_Settings
         ?>
         <div class="wrap jazireh-settings-wrap">
             <h1>Jazireh Settings</h1>
-            <p>Manage the editable content that powers the React frontend while keeping advanced interactive sections in code.</p>
+            <p>Manage the editable content that powers the React frontend while keeping advanced interactive sections in code.
+            </p>
             <nav class="nav-tab-wrapper">
-                <?php foreach ($allowed_tabs as $tab_key) : ?>
-                    <a class="nav-tab <?php echo $tab === $tab_key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=jazireh-settings&tab=' . $tab_key)); ?>"><?php echo esc_html(ucwords(str_replace('-', ' ', $tab_key))); ?></a>
+                <?php foreach ($allowed_tabs as $tab_key): ?>
+                    <a class="nav-tab <?php echo $tab === $tab_key ? 'nav-tab-active' : ''; ?>"
+                        href="<?php echo esc_url(admin_url('admin.php?page=jazireh-settings&tab=' . $tab_key)); ?>"><?php echo esc_html(ucwords(str_replace('-', ' ', $tab_key))); ?></a>
                 <?php endforeach; ?>
             </nav>
 
             <form method="post" action="options.php" class="jazireh-settings-form">
                 <?php settings_fields('jazireh_settings_group'); ?>
-                <?php if ($refresh_notice && $refresh_message) : ?>
-                    <div class="<?php echo $refresh_notice === 'success' ? 'notice notice-success' : 'notice notice-error'; ?> inline"><p><?php echo esc_html($refresh_message); ?></p></div>
+                <?php if ($refresh_notice && $refresh_message): ?>
+                    <div
+                        class="<?php echo $refresh_notice === 'success' ? 'notice notice-success' : 'notice notice-error'; ?> inline">
+                        <p><?php echo esc_html($refresh_message); ?></p>
+                    </div>
+                <?php endif; ?>
+                <?php if ($widget_notice && $widget_message): ?>
+                    <div
+                        class="<?php echo $widget_notice === 'success' ? 'notice notice-success' : 'notice notice-error'; ?> inline">
+                        <p><?php echo esc_html($widget_message); ?></p>
+                    </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'homepage') : ?>
+                <?php if ($tab === 'homepage'): ?>
                     <div class="jazireh-settings-grid">
                         <div class="jazireh-settings-card">
                             <h2>Hero</h2>
@@ -313,7 +365,7 @@ final class Jazireh_Settings
                     <div class="jazireh-settings-card">
                         <h2>Homepage cards</h2>
                         <div class="jazireh-settings-grid two-col">
-                            <?php foreach ($settings['homepage']['cards'] as $key => $value) : ?>
+                            <?php foreach ($settings['homepage']['cards'] as $key => $value): ?>
                                 <?php self::text_input('jazireh_settings[homepage][cards][' . $key . ']', ucwords(str_replace('_', ' ', $key)), $value); ?>
                             <?php endforeach; ?>
                         </div>
@@ -321,11 +373,13 @@ final class Jazireh_Settings
 
                     <div class="jazireh-settings-card">
                         <h2>Featured content</h2>
-                        <p>Select up to three news items to pin on the homepage. If none are selected, the latest published items are used.</p>
+                        <p>Select up to three news items to pin on the homepage. If none are selected, the latest published items
+                            are used.</p>
                         <div class="jazireh-checkbox-list">
-                            <?php foreach ($news_items as $news_item) : ?>
+                            <?php foreach ($news_items as $news_item): ?>
                                 <label>
-                                    <input type="checkbox" name="jazireh_settings[homepage][featured_news_ids][]" value="<?php echo esc_attr($news_item->ID); ?>" <?php checked(in_array((int) $news_item->ID, self::array_get($settings['homepage'], 'featured_news_ids', array()), true)); ?>>
+                                    <input type="checkbox" name="jazireh_settings[homepage][featured_news_ids][]"
+                                        value="<?php echo esc_attr($news_item->ID); ?>" <?php checked(in_array((int) $news_item->ID, self::array_get($settings['homepage'], 'featured_news_ids', array()), true)); ?>>
                                     <span><?php echo esc_html(get_the_title($news_item)); ?></span>
                                 </label>
                             <?php endforeach; ?>
@@ -333,16 +387,18 @@ final class Jazireh_Settings
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'branding') : ?>
+                <?php if ($tab === 'branding'): ?>
                     <div class="jazireh-settings-card">
                         <h2>Branding and site identity</h2>
-                        <p>Use <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Appearance &gt; Customize</a> to change the custom logo and site icon. Site title and tagline come from <a href="<?php echo esc_url(admin_url('options-general.php')); ?>">Settings &gt; General</a>.</p>
+                        <p>Use <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Appearance &gt; Customize</a> to change
+                            the custom logo and site icon. Site title and tagline come from <a
+                                href="<?php echo esc_url(admin_url('options-general.php')); ?>">Settings &gt; General</a>.</p>
                         <?php self::textarea_input('jazireh_settings[branding][site_description]', 'Brand description', self::array_get($settings['branding'], 'site_description', '')); ?>
                         <?php self::text_input('jazireh_settings[branding][youtube_label]', 'YouTube label', self::array_get($settings['branding'], 'youtube_label', '')); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'social') : ?>
+                <?php if ($tab === 'social'): ?>
                     <div class="jazireh-settings-card">
                         <h2>Social media</h2>
                         <?php self::text_input('jazireh_settings[social][youtube_url]', 'YouTube URL', self::array_get($settings['social'], 'youtube_url', '')); ?>
@@ -354,7 +410,7 @@ final class Jazireh_Settings
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'contact') : ?>
+                <?php if ($tab === 'contact'): ?>
                     <div class="jazireh-settings-card">
                         <h2>Contact information</h2>
                         <?php self::text_input('jazireh_settings[contact][email]', 'Email', self::array_get($settings['contact'], 'email', '')); ?>
@@ -363,19 +419,21 @@ final class Jazireh_Settings
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'footer') : ?>
+                <?php if ($tab === 'footer'): ?>
                     <div class="jazireh-settings-card">
                         <h2>Footer content</h2>
-                        <?php foreach ($settings['footer'] as $key => $value) : ?>
+                        <?php foreach ($settings['footer'] as $key => $value): ?>
                             <?php self::textarea_input('jazireh_settings[footer][' . $key . ']', ucwords(str_replace('_', ' ', $key)), $value); ?>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tab === 'integrations') : ?>
+                <?php if ($tab === 'integrations'): ?>
                     <div class="jazireh-settings-card">
                         <h2>Integrations</h2>
-                        <p>The React frontend reads these WordPress-managed values from <code>/wp-json/jazireh/v1/site</code>. Interactive sections still stay in React, while editable copy, links, branding, and menus come from WordPress.</p>
+                        <p>The React frontend reads these WordPress-managed values from <code>/wp-json/jazireh/v1/site</code>.
+                            Interactive sections still stay in React, while editable copy, links, branding, and menus come from
+                            WordPress.</p>
                         <ul>
                             <li>YouTube API key remains server-side.</li>
                             <li>Logo comes from the WordPress custom logo setting.</li>
@@ -383,6 +441,7 @@ final class Jazireh_Settings
                             <li>Header and footer menus come from Appearance &gt; Menus.</li>
                         </ul>
                     </div>
+                    <?php self::apod_localization_panel($settings); ?>
                     <div class="jazireh-settings-card">
                         <h2>Community matching</h2>
                         <?php self::textarea_input('jazireh_settings[community][include_phrases]', 'Include phrases (one per line)', self::array_get($settings['community'], 'include_phrases', '')); ?>
@@ -395,26 +454,146 @@ final class Jazireh_Settings
                     </div>
                     <?php Jazireh_YouTube::integrations_panel(); ?>
                     <?php Jazireh_Daily::integrations_panel(); ?>
+                    <?php self::observatory_monitoring_panel(); ?>
                 <?php endif; ?>
 
                 <?php submit_button('Save Jazireh Settings'); ?>
             </form>
         </div>
         <style>
-            .jazireh-settings-wrap{max-width:1180px}
-            .jazireh-settings-form{margin-top:20px}
-            .jazireh-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-            .jazireh-settings-grid.two-col{grid-template-columns:repeat(2,minmax(0,1fr))}
-            .jazireh-settings-card{background:#fff;border:1px solid #dcdcde;border-radius:18px;padding:24px;margin-top:20px}
-            .jazireh-settings-card h2{margin-top:0}
-            .jazireh-field{margin-bottom:16px}
-            .jazireh-field label{display:block;font-weight:600;margin-bottom:6px}
-            .jazireh-field input[type=text],.jazireh-field input[type=url],.jazireh-field input[type=email],.jazireh-field textarea,.jazireh-field select{width:100%;max-width:none}
-            .jazireh-media-preview{display:flex;align-items:center;gap:12px;margin-top:8px}
-            .jazireh-media-preview img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #dcdcde}
-            .jazireh-checkbox-list{display:grid;gap:10px}
-            .jazireh-checkbox-list label{display:flex;gap:10px;align-items:flex-start}
-            @media (max-width: 900px){.jazireh-settings-grid,.jazireh-settings-grid.two-col{grid-template-columns:1fr}}
+            .jazireh-settings-wrap {
+                max-width: 1180px
+            }
+
+            .jazireh-settings-form {
+                margin-top: 20px
+            }
+
+            .jazireh-settings-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 18px
+            }
+
+            .jazireh-settings-grid.two-col {
+                grid-template-columns: repeat(2, minmax(0, 1fr))
+            }
+
+            .jazireh-settings-card {
+                background: #fff;
+                border: 1px solid #dcdcde;
+                border-radius: 18px;
+                padding: 24px;
+                margin-top: 20px
+            }
+
+            .jazireh-settings-card h2 {
+                margin-top: 0
+            }
+
+            .jazireh-field {
+                margin-bottom: 16px
+            }
+
+            .jazireh-field label {
+                display: block;
+                font-weight: 600;
+                margin-bottom: 6px
+            }
+
+            .jazireh-field input[type=text],
+            .jazireh-field input[type=url],
+            .jazireh-field input[type=email],
+            .jazireh-field textarea,
+            .jazireh-field select {
+                width: 100%;
+                max-width: none
+            }
+
+            .jazireh-media-preview {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-top: 8px
+            }
+
+            .jazireh-media-preview img {
+                width: 72px;
+                height: 72px;
+                object-fit: cover;
+                border-radius: 12px;
+                border: 1px solid #dcdcde
+            }
+
+            .jazireh-checkbox-list {
+                display: grid;
+                gap: 10px
+            }
+
+            .jazireh-checkbox-list label {
+                display: flex;
+                gap: 10px;
+                align-items: flex-start
+            }
+
+            .jazireh-widget-table-wrap {
+                overflow-x: auto
+            }
+
+            .jazireh-widget-table td,
+            .jazireh-widget-table th {
+                vertical-align: middle
+            }
+
+            .jazireh-status-badge {
+                display: inline-flex;
+                align-items: center;
+                border-radius: 999px;
+                padding: 4px 10px;
+                font-size: 12px;
+                font-weight: 700;
+                background: #f1f5f9;
+                color: #334155
+            }
+
+            .jazireh-status-ready,
+            .jazireh-status-warm {
+                background: #dcfce7;
+                color: #166534
+            }
+
+            .jazireh-status-auto_ready,
+            .jazireh-status-manual_ready {
+                background: #dcfce7;
+                color: #166534
+            }
+
+            .jazireh-status-stale,
+            .jazireh-status-pending {
+                background: #fef3c7;
+                color: #92400e
+            }
+
+            .jazireh-status-error,
+            .jazireh-status-failed,
+            .jazireh-status-missing_key {
+                background: #fee2e2;
+                color: #991b1b
+            }
+
+            .jazireh-status-miss,
+            .jazireh-status-not_checked {
+                background: #e2e8f0;
+                color: #475569
+            }
+
+            @media (max-width: 900px) {
+
+                .jazireh-settings-grid,
+                .jazireh-settings-grid.two-col {
+                    grid-template-columns: 1fr
+                }
+            }
         </style>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -445,6 +624,272 @@ final class Jazireh_Settings
             });
         </script>
         <?php
+    }
+
+    public static function handle_widget_refresh()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('You do not have permission to refresh Jazireh widgets.', 'jazireh-core'), '', array('response' => 403));
+        }
+
+        check_admin_referer('jazireh_refresh_widget');
+
+        $widget = isset($_REQUEST['widget']) ? sanitize_key(wp_unslash($_REQUEST['widget'])) : '';
+        $descriptors = self::widget_descriptors();
+        $status = 'error';
+        $message = 'Unknown widget.';
+
+        if (isset($descriptors[$widget])) {
+            $callback = $descriptors[$widget]['refresh_callback'];
+            if (is_callable($callback)) {
+                $result = call_user_func($callback);
+                $is_success = is_array($result) && isset($result['status']) && $result['status'] !== Jazireh_Widgets::STATE_ERROR;
+                $status = $is_success ? 'success' : 'error';
+                $message = $is_success
+                    ? $descriptors[$widget]['name'] . ' refreshed.'
+                    : $descriptors[$widget]['name'] . ' refresh failed.';
+                if (is_array($result) && !empty($result['message'])) {
+                    $message .= ' ' . $result['message'];
+                }
+            } else {
+                $message = 'Refresh callback is unavailable.';
+            }
+        }
+
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'jazireh-settings',
+            'tab' => 'integrations',
+            'widget_refresh' => $status,
+            'widget_message' => rawurlencode($message),
+        ), admin_url('admin.php')));
+        exit;
+    }
+
+    private static function observatory_monitoring_panel()
+    {
+        $statuses = Jazireh_Widgets::statuses();
+        ?>
+        <div class="jazireh-settings-card">
+            <h2>Live Observatory monitoring</h2>
+            <p>Monitor public observatory widgets and refresh a single widget cache when needed. API keys and secrets are never
+                displayed here.</p>
+            <div class="jazireh-widget-table-wrap">
+                <table class="widefat striped jazireh-widget-table">
+                    <thead>
+                        <tr>
+                            <th>Widget</th>
+                            <th>Status</th>
+                            <th>Last successful refresh</th>
+                            <th>Last error</th>
+                            <th>Cache</th>
+                            <th>Source / provider</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (self::widget_descriptors() as $key => $descriptor): ?>
+                            <?php
+                            $status = isset($statuses[$key]) && is_array($statuses[$key]) ? $statuses[$key] : array();
+                            $cache_status = self::widget_cache_status($descriptor);
+                            $refresh_url = wp_nonce_url(add_query_arg(array(
+                                'action' => 'jazireh_refresh_widget',
+                                'widget' => $key,
+                            ), admin_url('admin-post.php')), 'jazireh_refresh_widget');
+                            ?>
+                            <tr>
+                                <td><strong><?php echo esc_html($descriptor['name']); ?></strong><br><code><?php echo esc_html($key); ?></code>
+                                </td>
+                                <td><?php echo wp_kses_post(self::status_badge(self::array_get($status, 'status', 'not_checked'))); ?>
+                                </td>
+                                <td><?php echo esc_html(self::admin_datetime(self::array_get($status, 'lastSuccessAt', ''))); ?>
+                                </td>
+                                <td><?php echo esc_html(self::array_get($status, 'lastError', '') ?: '—'); ?></td>
+                                <td><?php echo wp_kses_post(self::status_badge($cache_status)); ?></td>
+                                <td><?php echo esc_html(self::array_get($status, 'source', '') ?: $descriptor['source']); ?></td>
+                                <td>
+                                    <a class="button button-secondary button-small"
+                                        href="<?php echo esc_url($refresh_url); ?>">Refresh</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php
+    }
+
+    private static function apod_localization_panel($settings)
+    {
+        $health = class_exists('Jazireh_APOD_Localizer') ? Jazireh_APOD_Localizer::provider_health() : array('status' => 'missing_key', 'label' => 'نیاز به تنظیم کلید سرویس');
+        $monitor = class_exists('Jazireh_APOD_Localizer') ? Jazireh_APOD_Localizer::monitor() : array();
+        ?>
+        <div class="jazireh-settings-card" dir="rtl">
+            <h2>ترجمه خودکار عکس روز ناسا</h2>
+            <p>پس از دریافت APOD جدید، جزیره در پس‌زمینه محتوای فارسی را تولید و در وردپرس ذخیره می‌کند. کلید سرویس فقط روی سرور
+                خوانده می‌شود و اینجا نمایش داده نمی‌شود.</p>
+            <div class="jazireh-field">
+                <label>
+                    <input type="checkbox" name="jazireh_settings[integrations][apod_auto_localization]" value="1" <?php checked(self::array_get($settings['integrations'], 'apod_auto_localization', '0'), '1'); ?>>
+                    ترجمه خودکار عکس روز ناسا
+                </label>
+            </div>
+            <p><strong>وضعیت سرویس:</strong>
+                <?php echo wp_kses_post(self::status_badge(self::array_get($health, 'badge', 'not_checked'), self::array_get($health, 'label', 'وضعیت نامشخص'))); ?>
+            </p>
+            <p><strong>آخرین تاریخ APOD:</strong> <?php echo esc_html(self::array_get($monitor, 'latestDate', '') ?: '—'); ?>
+            </p>
+            <p><strong>وضعیت ترجمه:</strong>
+                <?php echo wp_kses_post(self::status_badge(self::array_get($monitor, 'status', 'not_checked'))); ?></p>
+            <p><strong>آخرین تلاش:</strong>
+                <?php echo esc_html(self::admin_datetime(self::array_get($monitor, 'lastAttemptAt', ''))); ?></p>
+            <p><strong>آخرین موفقیت:</strong>
+                <?php echo esc_html(self::admin_datetime(self::array_get($monitor, 'lastSuccessAt', ''))); ?></p>
+            <p><strong>خطای اخیر:</strong> <?php echo esc_html(self::array_get($monitor, 'lastError', '') ?: '—'); ?></p>
+        </div>
+        <?php
+    }
+
+    public static function prewarm_widgets()
+    {
+        $results = array();
+
+        foreach (self::widget_descriptors() as $key => $descriptor) {
+            if (empty($descriptor['prewarm_callback']) || !is_callable($descriptor['prewarm_callback'])) {
+                $results[$key] = array(
+                    'status' => 'skipped',
+                    'message' => 'Prewarm callback is unavailable.',
+                );
+                continue;
+            }
+
+            try {
+                $started_at = microtime(true);
+                $result = call_user_func($descriptor['prewarm_callback']);
+                $results[$key] = array(
+                    'status' => is_array($result) && isset($result['status']) ? $result['status'] : 'ready',
+                    'message' => is_array($result) && !empty($result['message']) ? $result['message'] : '',
+                    'durationMs' => (int) round((microtime(true) - $started_at) * 1000),
+                );
+            } catch (Throwable $exception) {
+                $results[$key] = array(
+                    'status' => 'error',
+                    'message' => $exception->getMessage(),
+                    'durationMs' => isset($started_at) ? (int) round((microtime(true) - $started_at) * 1000) : 0,
+                );
+
+                error_log(sprintf(
+                    'Jazireh widget prewarm failed for %s: %s',
+                    sanitize_key($key),
+                    $exception->getMessage()
+                ));
+            }
+        }
+
+        return $results;
+    }
+
+    public static function widget_descriptors()
+    {
+        return array(
+            'apod' => array(
+                'name' => 'NASA APOD',
+                'source' => 'NASA APOD',
+                'cache_key' => 'jazireh_apod_latest_range_1',
+                'prewarm_callback' => array('Jazireh_APOD_Service', 'refresh'),
+                'refresh_callback' => array('Jazireh_APOD_Service', 'refresh'),
+            ),
+            'sun' => array(
+                'name' => 'Sun Now',
+                'source' => 'Helioviewer',
+                'cache_key' => Jazireh_Widgets::cache_key('sun'),
+                'prewarm_callback' => array('Jazireh_Sun_Service', 'refresh'),
+                'refresh_callback' => array('Jazireh_Sun_Service', 'refresh'),
+            ),
+            'moon' => array(
+                'name' => 'Moon Now',
+                'source' => 'Astronomical calculation',
+                'cache_key' => Jazireh_Widgets::cache_key('moon'),
+                'prewarm_callback' => array('Jazireh_Moon_Service', 'widget'),
+                'refresh_callback' => array('Jazireh_Moon_Service', 'refresh'),
+            ),
+            'sky' => array(
+                'name' => 'Sky Tonight',
+                'source' => 'Astronomical calculation',
+                'cache_key' => Jazireh_Widgets::cache_key('sky'),
+                'prewarm_callback' => array('Jazireh_Sky_Service', 'widget'),
+                'refresh_callback' => array('Jazireh_Sky_Service', 'refresh'),
+            ),
+            'earth' => array(
+                'name' => 'Earth From Space',
+                'source' => 'NASA EPIC',
+                'cache_key' => Jazireh_Widgets::cache_key('earth'),
+                'prewarm_callback' => array('Jazireh_Earth_Service', 'refresh'),
+                'refresh_callback' => array('Jazireh_Earth_Service', 'refresh'),
+            ),
+            'earthquakes' => array(
+                'name' => 'Earthquakes',
+                'source' => 'USGS Earthquake Hazards Program',
+                'cache_key' => Jazireh_Widgets::cache_key('earthquakes'),
+                'prewarm_callback' => array('Jazireh_Earthquake_Service', 'refresh'),
+                'refresh_callback' => array('Jazireh_Earthquake_Service', 'refresh'),
+            ),
+            'planets' => array(
+                'name' => 'Planet Visibility',
+                'source' => 'JPL Horizons',
+                'cache_key' => 'jazireh_planets_payload_last_good',
+                'prewarm_callback' => array('Jazireh_Planets', 'prewarm'),
+                'refresh_callback' => array('Jazireh_Planets', 'prewarm'),
+            ),
+            'youtube' => array(
+                'name' => 'YouTube Videos',
+                'source' => 'YouTube Data API',
+                'cache_key' => Jazireh_YouTube::CACHE_PREFIX . '3',
+                'prewarm_callback' => array('Jazireh_YouTube', 'prewarm'),
+                'refresh_callback' => array('Jazireh_YouTube', 'prewarm'),
+            ),
+        );
+    }
+
+    private static function widget_cache_status($descriptor)
+    {
+        $cached = get_transient($descriptor['cache_key']);
+        if (!is_array($cached)) {
+            return 'miss';
+        }
+        return Jazireh_Widgets::is_stale($cached) ? 'stale' : 'warm';
+    }
+
+    private static function status_badge($status, $message = '')
+    {
+        $status = sanitize_key($status);
+        $labels = array(
+            'ready' => 'Ready',
+            'stale' => 'Stale',
+            'error' => 'Error',
+            'warm' => 'Warm',
+            'miss' => 'Miss',
+            'not_checked' => 'Not checked',
+            'auto_ready' => 'ترجمه خودکار آماده است',
+            'manual_ready' => 'ویرایش دستی شده',
+            'pending' => 'در انتظار ترجمه خودکار',
+            'failed' => 'ترجمه خودکار انجام نشد',
+            'missing_key' => 'نیاز به تنظیم کلید سرویس',
+        );
+        $label = $message ?: (isset($labels[$status]) ? $labels[$status] : ucfirst($status));
+        return '<span class="jazireh-status-badge jazireh-status-' . esc_attr($status) . '">' . esc_html($label) . '</span>';
+    }
+
+    private static function admin_datetime($value)
+    {
+        if (!$value) {
+            return '—';
+        }
+        $timestamp = strtotime((string) $value);
+        if (!$timestamp) {
+            return '—';
+        }
+        return wp_date('Y-m-d H:i', $timestamp);
     }
 
     public static function featured_news_query_args($fallback_count)
@@ -580,7 +1025,8 @@ final class Jazireh_Settings
         ?>
         <div class="jazireh-field">
             <label><?php echo esc_html($label); ?></label>
-            <input type="text" class="regular-text" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($value); ?>">
+            <input type="text" class="regular-text" name="<?php echo esc_attr($name); ?>"
+                value="<?php echo esc_attr($value); ?>">
         </div>
         <?php
     }
@@ -601,8 +1047,10 @@ final class Jazireh_Settings
         <div class="jazireh-field">
             <label><?php echo esc_html($label); ?></label>
             <select name="<?php echo esc_attr($name); ?>">
-                <?php foreach ($options as $option_value => $option_label) : ?>
-                    <option value="<?php echo esc_attr($option_value); ?>" <?php selected($value, $option_value); ?>><?php echo esc_html($option_label); ?></option>
+                <?php foreach ($options as $option_value => $option_label): ?>
+                    <option value="<?php echo esc_attr($option_value); ?>" <?php selected($value, $option_value); ?>>
+                        <?php echo esc_html($option_label); ?>
+                    </option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -616,7 +1064,8 @@ final class Jazireh_Settings
         <div class="jazireh-field" data-jazireh-media-field>
             <label><?php echo esc_html($label); ?></label>
             <input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($attachment_id); ?>">
-            <div class="jazireh-media-preview" data-jazireh-media-preview><?php if ($preview) : ?><img src="<?php echo esc_url($preview); ?>" alt=""><?php endif; ?></div>
+            <div class="jazireh-media-preview" data-jazireh-media-preview><?php if ($preview): ?><img
+                        src="<?php echo esc_url($preview); ?>" alt=""><?php endif; ?></div>
             <p>
                 <button class="button" data-jazireh-open-media>Select image</button>
                 <button class="button-link-delete" data-jazireh-clear-media>Clear</button>

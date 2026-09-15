@@ -36,12 +36,18 @@ const defaultSettings = {
     mobile: [
       { label: 'خانه', path: '/', url: '/', external: false, target: '', icon: 'home' },
       { label: 'آسمان', path: '/sky', url: '/sky', external: false, target: '', icon: 'sparkles' },
+      { label: 'پرونده‌ها', path: '/topics', url: '/topics', external: false, target: '', icon: 'orbit' },
+      { label: 'رویدادها', path: '/events', url: '/events', external: false, target: '', icon: 'calendar' },
+      { label: 'جستجو', path: '/search', url: '/search', external: false, target: '', icon: 'search' },
       { label: 'کاوش', path: '/explore', url: '/explore', external: false, target: '', icon: 'telescope' },
       { label: 'اخبار', path: '/news', url: '/news', external: false, target: '', icon: 'newspaper' },
       { label: 'ویدیو', path: '/videos', url: '/videos', external: false, target: '', icon: 'clapperboard' }
     ],
     footer: [
       { label: 'آسمان امروز', path: '/sky', url: '/sky', external: false, target: '' },
+      { label: 'رویدادهای نجومی', path: '/events', url: '/events', external: false, target: '' },
+      { label: 'پرونده‌های علمی', path: '/topics', url: '/topics', external: false, target: '' },
+      { label: 'جستجو در جزیره', path: '/search', url: '/search', external: false, target: '' },
       { label: 'کاوش منظومه شمسی', path: '/explore', url: '/explore', external: false, target: '' },
       { label: 'تصویر روز ناسا', path: '/apod', url: '/apod', external: false, target: '' },
       { label: 'جزیره دیلی', path: '/jazireh-daily', url: '/jazireh-daily', external: false, target: '' },

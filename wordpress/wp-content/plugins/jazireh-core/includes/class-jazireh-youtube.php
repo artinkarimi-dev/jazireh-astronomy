@@ -34,6 +34,14 @@ final class Jazireh_YouTube
                 ));
                 return $cached;
             }
+
+            $last_good = get_transient($last_good_key);
+            if (is_array($last_good)) {
+                self::touch_status(array(
+                    'cache_state' => 'last-known-good',
+                ));
+                return $last_good;
+            }
         }
 
         self::touch_status(array(
@@ -81,6 +89,43 @@ final class Jazireh_YouTube
         ));
 
         return $videos;
+    }
+
+    public static function cached_videos($limit = 3)
+    {
+        $limit = min(max((int) $limit, 1), 10);
+        $candidate_limits = array_values(array_unique(array($limit, 10, 6, 3)));
+        $candidate_keys = array();
+        foreach ($candidate_limits as $candidate_limit) {
+            $candidate_keys[] = self::CACHE_PREFIX . $candidate_limit;
+            $candidate_keys[] = self::LAST_GOOD_PREFIX . $candidate_limit;
+        }
+
+        foreach ($candidate_keys as $key) {
+            $cached = get_transient($key);
+            if (is_array($cached)) {
+                return array_slice($cached, 0, $limit);
+            }
+        }
+        return array();
+    }
+
+    public static function prewarm()
+    {
+        $videos = self::latest_videos(3, true);
+        if (is_wp_error($videos)) {
+            return array(
+                'status' => Jazireh_Widgets::STATE_ERROR,
+                'message' => $videos->get_error_message(),
+                'data' => array(),
+            );
+        }
+
+        return array(
+            'status' => Jazireh_Widgets::STATE_READY,
+            'message' => '',
+            'data' => $videos,
+        );
     }
 
     public static function diagnostics()

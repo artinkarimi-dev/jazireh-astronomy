@@ -4,6 +4,11 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import Logo from './Logo'
 
+const requiredNavItems = [
+  { label: 'رویدادها', path: '/events', url: '/events', external: false, target: '' },
+  { label: 'جستجو', path: '/search', url: '/search', external: false, target: '' }
+]
+
 function HeaderNavItem({ item, className, activeClassName = '' }) {
   if (item.external) {
     return (
@@ -29,7 +34,7 @@ export default function Header() {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
   const { settings } = useSiteSettings()
-  const menuItems = settings.menus.primary || []
+  const menuItems = withRequiredLinks(settings.menus.primary || [])
   const youtube = settings.social.youtube
 
   useEffect(() => setOpen(false), [pathname])
@@ -109,4 +114,12 @@ export default function Header() {
       )}
     </header>
   )
+}
+
+function withRequiredLinks(items) {
+  const existing = new Set(items.map((item) => item.path || item.url))
+  return [
+    ...items,
+    ...requiredNavItems.filter((item) => !existing.has(item.path))
+  ]
 }

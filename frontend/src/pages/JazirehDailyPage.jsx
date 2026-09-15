@@ -48,12 +48,13 @@ export default function JazirehDailyPage() {
         ) : (
           <div className="daily-grid">
             {items.map((item) => {
-              const image = item.images?.[0]?.url || ''
+              const image = item.media?.thumbnail || item.images?.[0]?.url || youtubeThumbnailFromUrl(item.sourceUrl)
+              const isShort = item.media?.type === 'youtube-short' || item.sourceUrl?.includes('/shorts/')
               return (
                 <article key={item.id} className="surface-card daily-card overflow-hidden">
                   <Link to={`/jazireh-daily/${item.slug}`} className="group block h-full">
-                    <div className="daily-card-media">
-                      {image ? <img src={image} alt={item.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" decoding="async" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-amber-200/70" /></div>}
+                    <div className={`daily-card-media ${isShort ? 'daily-card-media-short' : ''}`}>
+                      <DailyCardImage image={image} title={item.title} />
                     </div>
                     <div className="p-5 sm:p-6">
                       <span className="eyebrow">{formatDate(item.publishedAt)}</span>
@@ -73,4 +74,26 @@ export default function JazirehDailyPage() {
       </section>
     </>
   )
+}
+
+function youtubeThumbnailFromUrl(url = '') {
+  const value = String(url)
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+    /[?&]v=([A-Za-z0-9_-]{6,})/,
+  ]
+  const match = patterns.map((pattern) => value.match(pattern)?.[1]).find(Boolean)
+  return match ? `https://i.ytimg.com/vi/${encodeURIComponent(match)}/hqdefault.jpg` : ''
+}
+
+function DailyCardImage({ image, title }) {
+  const [failed, setFailed] = useState(false)
+
+  if (!image || failed) {
+    return <div className="daily-media-fallback"><ImageIcon className="h-9 w-9 text-amber-200/80" /><span>رسانه‌ای برای این پست ثبت نشده است</span></div>
+  }
+
+  return <img src={image} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
 }

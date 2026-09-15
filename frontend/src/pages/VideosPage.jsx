@@ -36,19 +36,30 @@ function getYoutubeVideoId(url) {
   if (!url) return ''
   try {
     const parsed = new URL(url)
+    if (parsed.hostname.includes('youtu.be')) {
+      return parsed.pathname.replace(/^\/+/, '').split('/')[0] || ''
+    }
+    if (parsed.pathname.startsWith('/embed/')) {
+      return parsed.pathname.split('/')[2] || ''
+    }
     return parsed.searchParams.get('v') || ''
   } catch {
     return ''
   }
 }
 
-function getYoutubeEmbedUrl(videoId) {
-  if (!videoId) return ''
-  const embed = new URL(`https://www.youtube.com/embed/${videoId}`)
+function getYoutubeEmbedUrl(videoId, embedUrl = '') {
+  if (!videoId && !embedUrl) return ''
+
+  const embed = new URL(embedUrl || `https://www.youtube.com/embed/${videoId}`)
+  if (videoId && !embed.pathname.startsWith('/embed/')) {
+    embed.pathname = `/embed/${videoId}`
+  }
   embed.searchParams.set('enablejsapi', '1')
   embed.searchParams.set('origin', window.location.origin)
   embed.searchParams.set('playsinline', '1')
   embed.searchParams.set('rel', '0')
+  embed.searchParams.set('autoplay', '1')
   return embed.toString()
 }
 
@@ -59,6 +70,7 @@ export default function VideosPage() {
   const [loadError, setLoadError] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
+  const [iframeActivated, setIframeActivated] = useState(false)
   const videoRef = useRef(null)
   const youtubePlayerRef = useRef(null)
   const playerFrameRef = useRef(null)
@@ -93,8 +105,8 @@ export default function VideosPage() {
     return () => { mounted = false }
   }, [])
 
-  const activeYoutubeId = getYoutubeVideoId(active?.youtubeUrl)
-  const embedUrl = active?.embedUrl || getYoutubeEmbedUrl(activeYoutubeId)
+  const activeYoutubeId = getYoutubeVideoId(active?.youtubeUrl || active?.embedUrl)
+  const embedUrl = getYoutubeEmbedUrl(activeYoutubeId, active?.embedUrl)
   const isYoutubeVideo = Boolean(activeYoutubeId)
 
   useEffect(() => {
@@ -102,7 +114,12 @@ export default function VideosPage() {
   }, [muted])
 
   useEffect(() => {
-    if (!isYoutubeVideo || !active) {
+    setIframeActivated(false)
+    setPlaying(false)
+  }, [active?.id])
+
+  useEffect(() => {
+    if (!isYoutubeVideo || !active || !iframeActivated) {
       youtubePlayerRef.current?.destroy?.()
       youtubePlayerRef.current = null
       return
@@ -133,7 +150,7 @@ export default function VideosPage() {
       youtubePlayerRef.current?.destroy?.()
       youtubePlayerRef.current = null
     }
-  }, [active, isYoutubeVideo, activeYoutubeId])
+  }, [active, isYoutubeVideo, activeYoutubeId, iframeActivated])
 
   useEffect(() => {
     if (!isYoutubeVideo) return
@@ -143,6 +160,11 @@ export default function VideosPage() {
 
   const toggle = () => {
     if (isYoutubeVideo) {
+      if (!iframeActivated) {
+        setIframeActivated(true)
+        setPlaying(true)
+        return
+      }
       const player = youtubePlayerRef.current
       if (!player) return
       const playerState = player.getPlayerState?.()
@@ -159,6 +181,8 @@ export default function VideosPage() {
     if (isYoutubeVideo) playerFrameRef.current?.requestFullscreen?.()
     else videoRef.current?.requestFullscreen?.()
   }
+
+  const activePoster = active?.thumbnail || active?.poster || `https://i.ytimg.com/vi/${activeYoutubeId}/hqdefault.jpg`
 
   return (
     <>
@@ -182,7 +206,7 @@ export default function VideosPage() {
           <div className="videos-layout">
             <div className="surface-card videos-panel p-3 sm:p-4">
               <div className="relative overflow-hidden rounded-[22px] border border-white/[.08] bg-black">
-                {isYoutubeVideo ? (
+                {isYoutubeVideo && iframeActivated ? (
                   <iframe
                     key={activeYoutubeId}
                     ref={playerFrameRef}
@@ -190,12 +214,19 @@ export default function VideosPage() {
                     src={embedUrl}
                     title={active.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
                   />
+                ) : isYoutubeVideo ? (
+                  <button type="button" onClick={toggle} className="video-poster aspect-video w-full" aria-label="پخش ویدیو از یوتیوب">
+                    <img src={activePoster} alt="" className="h-full w-full object-cover opacity-85" loading="lazy" />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                    <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-red-500/90 text-white shadow-[0_18px_60px_rgba(239,68,68,.35)]"><Play className="mr-1 h-7 w-7 fill-current" /></span></span>
+                  </button>
                 ) : (
                   <video key={active.id} ref={videoRef} className="aspect-video w-full object-cover" poster={active.poster} muted={muted} playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}><source src={active.source} type="video/mp4" /></video>
                 )}
-                {isYoutubeVideo ? (
+                {isYoutubeVideo && iframeActivated ? (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <button type="button" onClick={toggle} className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur sm:h-16 sm:w-16" aria-label={playing ? 'توقف ویدیو' : 'پخش ویدیو'}>{playing ? <Pause className="h-6 w-6 fill-current sm:h-7 sm:w-7" /> : <Play className="mr-1 h-6 w-6 fill-current sm:h-7 sm:w-7" />}</button>
                   </div>
