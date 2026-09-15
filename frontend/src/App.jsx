@@ -18,6 +18,8 @@ const JazirehDailyPage = lazy(() => import('./pages/JazirehDailyPage'))
 const JazirehDailyDetailsPage = lazy(() => import('./pages/JazirehDailyDetailsPage'))
 const VideosPage = lazy(() => import('./pages/VideosPage'))
 const RadarPage = lazy(() => import('./pages/RadarPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const ContactPage = lazy(() => import('./pages/ContactPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 export default function App() {
@@ -61,6 +63,8 @@ export default function App() {
             <Route path="/jazireh-daily/:slug" element={<JazirehDailyDetailsPage />} />
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/radar" element={<RadarPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

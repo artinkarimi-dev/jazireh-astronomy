@@ -29,13 +29,6 @@ class Jazireh_Planets
             return $cached;
         }
 
-        if (!$force_refresh) {
-            $last_good = self::last_good_payload();
-            if (is_array($last_good)) {
-                return $last_good;
-            }
-        }
-
         $observer = self::observer($location);
         $sun = Jazireh_Ephemeris::object('sun', $observer, $timestamp, 'planet-visibility-sun');
         $items = array();
@@ -77,7 +70,7 @@ class Jazireh_Planets
         set_transient($cache_key, $payload, self::payload_cache_ttl($payload));
         if ($has_ready) {
             set_transient(self::LAST_GOOD_CACHE_KEY, $payload, self::LAST_GOOD_TTL);
-        } elseif ($force_refresh) {
+        } else {
             $last_good = self::last_good_payload();
             if (is_array($last_good)) {
                 return $last_good;

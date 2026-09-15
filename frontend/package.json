@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "node --test",
     "check": "npm run lint && npm run build",
     "build:wordpress": "vite build --manifest --outDir ../wordpress/wp-content/themes/jazireh-theme/dist --emptyOutDir"
   },

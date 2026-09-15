@@ -41,7 +41,7 @@ function jazireh_theme_is_react_request()
     if ($react_path === '') {
         return true;
     }
-    return (bool) preg_match('#^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics)(/.*)?$#', $react_path);
+    return (bool) preg_match('#^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics|about|contact)(/.*)?$#', $react_path);
 }
 
 function jazireh_theme_assets()
@@ -294,7 +294,9 @@ function jazireh_theme_route_meta()
         'radar' => array('title' => 'رادار آسمان', 'description' => 'نمای تعاملی و آموزشی برای دنبال‌کردن موقعیت اجرام در آسمان.'),
         'jazireh-daily' => array('title' => 'جزیره دیلی', 'description' => 'پست‌های کوتاه علمی و تصویری جزیره از داده‌ها و رسانه‌های روز.'),
         'search' => array('title' => 'جستجوی سایت', 'description' => 'جستجو در اخبار علمی، ویدیوها، تصویر روز ناسا، جزیره دیلی و اجرام آسمانی جزیره.', 'robots' => 'noindex,follow,max-image-preview:large'),
-        'events' => array('title' => 'رویدادهای نجومی', 'description' => 'تقویم رویدادهای نجومی پیش‌رو، گرفتگی‌ها، بارش‌های شهابی و پدیده‌های قابل مشاهده در جزیره نجوم.')
+        'events' => array('title' => 'رویدادهای نجومی', 'description' => 'تقویم رویدادهای نجومی پیش‌رو، گرفتگی‌ها، بارش‌های شهابی و پدیده‌های قابل مشاهده در جزیره نجوم.'),
+        'about' => array('title' => 'درباره جزیره نجوم', 'description' => 'درباره ماموریت، دامنه نسخه فعلی و رویکرد داده‌ای جزیره نجوم.'),
+        'contact' => array('title' => 'تماس با جزیره نجوم', 'description' => 'راه‌های ارتباطی رسمی جزیره نجوم و وضعیت اطلاعات تماس منتشرشده.')
     );
 
     if (isset($routes[$path])) {
@@ -443,7 +445,9 @@ function jazireh_theme_sitemap_urls()
         home_url('/explore/'),
         home_url('/radar/'),
         home_url('/jazireh-daily/'),
-        home_url('/events/')
+        home_url('/events/'),
+        home_url('/about/'),
+        home_url('/contact/')
     );
 
     foreach (array('jazireh_news' => 'news', 'jazireh_daily' => 'jazireh-daily') as $post_type => $base) {
@@ -485,7 +489,7 @@ add_action('template_redirect', 'jazireh_theme_sitemap_response', 0);
 function jazireh_theme_rewrites()
 {
     add_rewrite_rule('^jazireh-sitemap\.xml$', 'index.php', 'top');
-    add_rewrite_rule('^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics)(/.*)?$', 'index.php', 'top');
+    add_rewrite_rule('^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics|about|contact)(/.*)?$', 'index.php', 'top');
 }
 add_action('init', 'jazireh_theme_rewrites');
 
@@ -507,7 +511,7 @@ function jazireh_theme_react_route_fallback()
 {
     global $wp_query;
     $react_path = jazireh_theme_request_path();
-    if (preg_match('#^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics)(/.*)?$#', $react_path)) {
+    if (preg_match('#^(news|videos|apod|sky|sky-today|explore|radar|jazireh-daily|search|events|topics|about|contact)(/.*)?$#', $react_path)) {
         if ($wp_query instanceof WP_Query) {
             $wp_query->is_404 = false;
         }

@@ -224,6 +224,8 @@ Production or staging deployment requires:
 - HTTPS
 - an external scheduled worker for automatic Jazireh Daily synchronization
 
+NASA APOD and EPIC integrations resolve their key server-side from `JAZIREH_NASA_API_KEY`, `NASA_API_KEY`, or the `NASA_API_KEY` environment variable. If none is configured, the code falls back to NASA `DEMO_KEY`; use a real server-side key for production traffic and never expose it to the frontend.
+
 The repository should **not** be deployed together with `frontend/node_modules`, local caches, or any local-machine XAMPP-specific files.
 
 ## Known Limitations
