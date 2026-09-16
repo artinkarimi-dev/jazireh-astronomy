@@ -50,75 +50,74 @@ function source_item($date, $title, $content)
     );
 }
 
+function mark_manual_translation($post_id, $hash, $suffix = '')
+{
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_TITLE_FA, 'عنوان فارسی معتبر' . $suffix);
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_SUMMARY_FA, 'خلاصه فارسی معتبر که از متن اصلی ناسا تهیه شده است' . $suffix);
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_CONTENT_FA, 'ترجمه کامل فارسی معتبر برای نسخه فعلی منبع ناسا. عدد 42 و شناسه IC 348 بدون تغییر حفظ شده‌اند.' . $suffix);
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, Jazireh_APOD_Editorial::STATUS_MANUAL_READY);
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_TRANSLATION_SOURCE_HASH, $hash);
+    update_post_meta($post_id, Jazireh_APOD_Editorial::META_REVIEWED_AT, current_time(DATE_ATOM));
+}
+
 $dates = array('2099-01-01', '2099-01-02');
 foreach ($dates as $date) {
     cleanup_apod_date($date);
 }
 
-$provider_mode = 'success';
-add_filter('jazireh_apod_localizer_provider_response', function ($response, $payload) use (&$provider_mode) {
-    if ($provider_mode === 'fail') {
-        return new WP_Error('provider_timeout', 'Synthetic provider failure.');
-    }
-    return array(
-        'titleFa' => 'عنوان فارسی ' . $payload['date'],
-        'summaryFa' => 'خلاصه فارسی معتبر برای ' . $payload['titleOriginal'],
-        'contentFa' => 'این یک ترجمه فارسی معتبر برای منبع فعلی ناسا است و فقط برای آزمون چرخه ترجمه استفاده می‌شود. عدد 42 و شناسه IC 348 بدون تغییر حفظ شده‌اند.',
-        'translationNotes' => array(),
-        'sourceHash' => $payload['sourceHash'],
-    );
-}, 10, 2);
-
 try {
+    update_option(Jazireh_APOD_Localizer::OPTION_MONITOR, array(), false);
+    add_filter('jazireh_apod_localizer_enabled', '__return_false');
+
     $item_a = source_item('2099-01-01', 'Synthetic APOD IC 348', 'NASA explanation with number 42 and object IC 348.');
     $hash_a = Jazireh_APOD_Editorial::source_hash($item_a);
-    $post_id = Jazireh_APOD_Editorial::ensure_pending($item_a);
-    assert_true($post_id > 0, 'TEST A: pending entry was not created.');
-    assert_true(!Jazireh_APOD_Editorial::has_usable_for_date('2099-01-01', $hash_a), 'TEST A: new APOD should require translation.');
+    Jazireh_APOD_Localizer::maybe_queue_latest(array($item_a));
+    $post_id = Jazireh_APOD_Editorial::find_id_by_date('2099-01-01');
+    assert_true($post_id > 0, 'TEST A: APOD fetch did not create pending editorial record.');
+    assert_true(get_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, true) === Jazireh_APOD_Editorial::STATUS_PENDING, 'TEST A: new APOD should be pending manual translation.');
+    assert_true(get_post_meta($post_id, Jazireh_APOD_Editorial::META_SOURCE_HASH, true) === $hash_a, 'TEST A: source hash was not stored.');
+    assert_true(!Jazireh_APOD_Editorial::has_usable_for_date('2099-01-01', $hash_a), 'TEST A: untranslated APOD must not expose Persian text.');
 
-    assert_true(Jazireh_APOD_Localizer::process_date('2099-01-01'), 'TEST E: successful translation did not process.');
-    $ready = Jazireh_APOD_Editorial::get_ready_for_date('2099-01-01', $hash_a);
-    assert_true(is_array($ready), 'TEST E: translated APOD is not ready.');
-    assert_true($ready['translationSourceHash'] === $hash_a, 'TEST E: translation source hash was not stored.');
-    $attempts_after_first = (int) get_post_meta($post_id, Jazireh_APOD_Editorial::META_ATTEMPTS, true);
+    $attempts_before = (int) get_post_meta($post_id, Jazireh_APOD_Editorial::META_ATTEMPTS, true);
+    Jazireh_APOD_Localizer::process_date('2099-01-01');
+    $attempts_after = (int) get_post_meta($post_id, Jazireh_APOD_Editorial::META_ATTEMPTS, true);
+    assert_true($attempts_after === $attempts_before, 'TEST B: disabled provider should not attempt automatic translation.');
 
-    assert_true(Jazireh_APOD_Localizer::process_date('2099-01-01'), 'TEST B: idempotent second processing failed.');
-    $attempts_after_second = (int) get_post_meta($post_id, Jazireh_APOD_Editorial::META_ATTEMPTS, true);
-    assert_true($attempts_after_second === $attempts_after_first, 'TEST B: duplicate translation attempt occurred for same source hash.');
+    mark_manual_translation($post_id, $hash_a);
+    $ready_a = Jazireh_APOD_Editorial::get_ready_for_date('2099-01-01', $hash_a);
+    assert_true(is_array($ready_a), 'TEST C: reviewed manual translation was not usable.');
+    assert_true($ready_a['translationSourceHash'] === $hash_a, 'TEST C: manual translation was not bound to current source hash.');
 
-    update_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, Jazireh_APOD_Editorial::STATUS_MANUAL_READY);
-    update_post_meta($post_id, Jazireh_APOD_Editorial::META_TRANSLATION_SOURCE_HASH, $hash_a);
+    Jazireh_APOD_Localizer::maybe_queue_latest(array($item_a));
+    $status_after_same = get_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, true);
+    assert_true($status_after_same === Jazireh_APOD_Editorial::STATUS_MANUAL_READY, 'TEST D: unchanged APOD should not invalidate reviewed translation.');
+
     $item_b = source_item('2099-01-01', 'Synthetic APOD IC 348', 'NASA edited explanation with number 84 and object IC 348.');
     $hash_b = Jazireh_APOD_Editorial::source_hash($item_b);
-    Jazireh_APOD_Editorial::remember_source_item($item_b);
-    Jazireh_APOD_Editorial::ensure_pending($item_b);
-    assert_true($hash_b !== $hash_a, 'TEST C: edited source hash did not change.');
-    assert_true(!Jazireh_APOD_Editorial::has_usable_for_date('2099-01-01', $hash_b), 'TEST F: reviewed old translation should not be usable for edited source.');
-    assert_true(get_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, true) === Jazireh_APOD_Editorial::STATUS_PENDING, 'TEST C/F: old reviewed translation was not moved back into pending lifecycle.');
+    assert_true($hash_b !== $hash_a, 'TEST E: edited source hash did not change.');
+    Jazireh_APOD_Localizer::maybe_queue_latest(array($item_b));
+    assert_true(!Jazireh_APOD_Editorial::has_usable_for_date('2099-01-01', $hash_b), 'TEST E: stale reviewed translation was exposed for edited source.');
+    assert_true(get_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, true) === Jazireh_APOD_Editorial::STATUS_PENDING, 'TEST E: edited APOD should return to pending manual translation.');
 
-    $provider_mode = 'fail';
-    Jazireh_APOD_Localizer::process_date('2099-01-01');
-    assert_true(!Jazireh_APOD_Editorial::has_usable_for_date('2099-01-01', $hash_b), 'TEST D: failed translation should not expose old mismatched Persian text.');
-    assert_true(get_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, true) === Jazireh_APOD_Editorial::STATUS_FAILED, 'TEST D: failed provider did not mark translation failed.');
-
-    $provider_mode = 'success';
-    update_post_meta($post_id, Jazireh_APOD_Editorial::META_STATUS, Jazireh_APOD_Editorial::STATUS_PENDING);
-    assert_true(Jazireh_APOD_Localizer::process_date('2099-01-01'), 'TEST C: retranslation after source edit failed.');
+    mark_manual_translation($post_id, $hash_b, ' نسخه دوم');
     $ready_b = Jazireh_APOD_Editorial::get_ready_for_date('2099-01-01', $hash_b);
-    assert_true(is_array($ready_b) && $ready_b['translationSourceHash'] === $hash_b, 'TEST C: edited source translation was not rebound to new hash.');
+    assert_true(is_array($ready_b) && $ready_b['translationSourceHash'] === $hash_b, 'TEST F: updated manual translation was not bound to edited source.');
 
     $item_new_date = source_item('2099-01-02', 'Synthetic New Date APOD', 'NASA explanation for a different APOD date.');
     $hash_new_date = Jazireh_APOD_Editorial::source_hash($item_new_date);
-    Jazireh_APOD_Editorial::ensure_pending($item_new_date);
-    assert_true(Jazireh_APOD_Localizer::process_date('2099-01-02'), 'TEST H: new APOD date did not process.');
-    assert_true(is_array(Jazireh_APOD_Editorial::get_ready_for_date('2099-01-02', $hash_new_date)), 'TEST H: new APOD date did not produce a current translation.');
+    Jazireh_APOD_Localizer::maybe_queue_latest(array($item_new_date));
+    $new_id = Jazireh_APOD_Editorial::find_id_by_date('2099-01-02');
+    assert_true($new_id > 0, 'TEST G: new APOD date did not create an editorial record.');
+    assert_true(get_post_meta($new_id, Jazireh_APOD_Editorial::META_SOURCE_HASH, true) === $hash_new_date, 'TEST G: new APOD date did not store source hash.');
+    assert_true(get_post_meta($new_id, Jazireh_APOD_Editorial::META_STATUS, true) === Jazireh_APOD_Editorial::STATUS_PENDING, 'TEST G: new APOD date should be pending manual translation.');
 
     $site_response = wp_remote_get(home_url('/wp-json/jazireh/v1/apod?limit=1'), array('timeout' => 15));
     $body = wp_remote_retrieve_body($site_response);
-    assert_true(strpos($body, 'OPENAI_API_KEY') === false && strpos($body, 'JAZIREH_APOD_LOCALIZER_API_KEY') === false, 'TEST G: REST exposed provider key markers.');
+    assert_true(strpos($body, 'OPENAI_API_KEY') === false && strpos($body, 'JAZIREH_APOD_LOCALIZER_API_KEY') === false, 'TEST H: REST exposed provider key markers.');
 
-    echo "APOD localization contract tests passed.\n";
+    echo "APOD manual editorial localization contract tests passed.\n";
 } finally {
+    remove_filter('jazireh_apod_localizer_enabled', '__return_false');
     foreach ($dates as $date) {
         cleanup_apod_date($date);
     }

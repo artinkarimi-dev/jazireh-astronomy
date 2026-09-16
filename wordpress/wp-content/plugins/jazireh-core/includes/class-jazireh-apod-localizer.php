@@ -18,7 +18,7 @@ final class Jazireh_APOD_Localizer
 
     public static function maybe_queue_latest(array $items)
     {
-        if (!self::is_enabled() || empty($items[0]) || !is_array($items[0])) {
+        if (empty($items[0]) || !is_array($items[0])) {
             return;
         }
 
@@ -30,12 +30,17 @@ final class Jazireh_APOD_Localizer
 
         Jazireh_APOD_Editorial::remember_source_item($item);
         $source_hash = Jazireh_APOD_Editorial::source_hash($item);
+        Jazireh_APOD_Editorial::ensure_pending($item);
+
+        if (!self::is_enabled()) {
+            self::record_monitor($date, 'manual_pending', '');
+            return;
+        }
 
         if (Jazireh_APOD_Editorial::has_usable_for_date($date, $source_hash) || !Jazireh_APOD_Editorial::is_retry_allowed($date, self::RETRY_AFTER)) {
             return;
         }
 
-        Jazireh_APOD_Editorial::ensure_pending($item);
         self::queue_date($date);
     }
 
@@ -169,7 +174,7 @@ final class Jazireh_APOD_Localizer
         $settings = get_option(Jazireh_Settings::OPTION_NAME, array());
         $enabled = isset($settings['integrations']['apod_auto_localization'])
             ? $settings['integrations']['apod_auto_localization'] === '1'
-            : (bool) self::provider_key();
+            : false;
 
         return (bool) apply_filters('jazireh_apod_localizer_enabled', $enabled);
     }

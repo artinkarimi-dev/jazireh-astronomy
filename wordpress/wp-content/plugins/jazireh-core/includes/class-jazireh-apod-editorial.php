@@ -116,9 +116,9 @@ final class Jazireh_APOD_Editorial
                 <select id="jazireh_apod_translation_status" name="jazireh_apod_translation_status">
                     <option value="draft" <?php selected($status, self::STATUS_DRAFT); ?>>پیش‌نویس</option>
                     <option value="manual_ready" <?php selected($status, self::STATUS_MANUAL_READY); ?>>ویرایش دستی شده</option>
-                    <option value="auto_ready" <?php selected($status, self::STATUS_AUTO_READY); ?>>ترجمه خودکار آماده است</option>
-                    <option value="pending" <?php selected($status, self::STATUS_PENDING); ?>>در انتظار ترجمه خودکار</option>
-                    <option value="failed" <?php selected($status, self::STATUS_FAILED); ?>>ترجمه خودکار انجام نشد</option>
+                    <option value="auto_ready" <?php selected($status, self::STATUS_AUTO_READY); ?>>ترجمه کمکی آماده است</option>
+                    <option value="pending" <?php selected($status, self::STATUS_PENDING); ?>>در انتظار ترجمه تحریریه</option>
+                    <option value="failed" <?php selected($status, self::STATUS_FAILED); ?>>ترجمه کمکی انجام نشد</option>
                     <option value="stale" <?php selected($status, self::STATUS_STALE); ?>>قدیمی؛ منبع ناسا تغییر کرده است</option>
                 </select>
             </p>
@@ -129,11 +129,11 @@ final class Jazireh_APOD_Editorial
                 <p><strong>Translation source hash:</strong> <code><?php echo esc_html((string) $translation_source_hash); ?></code></p>
                 <p><strong>Translated at:</strong> <?php echo esc_html((string) $translated_at ?: '-'); ?> | <strong>Reviewed at:</strong> <?php echo esc_html((string) $reviewed_at ?: '-'); ?></p>
             </div>
-            <?php if ($post->ID && class_exists('Jazireh_APOD_Localizer')) : ?>
+            <?php if ($post->ID && class_exists('Jazireh_APOD_Localizer') && Jazireh_APOD_Localizer::is_enabled()) : ?>
                 <p>
                     <?php $url = wp_nonce_url(add_query_arg(array('action' => 'jazireh_regenerate_apod_translation', 'post_id' => $post->ID), admin_url('admin-post.php')), self::REGENERATE_ACTION); ?>
-                    <a class="button button-secondary" href="<?php echo esc_url($url); ?>">تولید دوباره ترجمه خودکار</a>
-                    <span class="description">اگر این نوشته ویرایش دستی شده باشد، تولید دوباره فقط با اقدام آگاهانه مدیر انجام می‌شود.</span>
+                    <a class="button button-secondary" href="<?php echo esc_url($url); ?>">تولید ترجمه کمکی اختیاری</a>
+                    <span class="description">این ابزار فقط زمانی فعال است که کمک‌یار ترجمه خودکار در تنظیمات روشن شده باشد.</span>
                 </p>
             <?php endif; ?>
         </div>
@@ -478,10 +478,10 @@ final class Jazireh_APOD_Editorial
         $status = sanitize_key($status);
         $labels = array(
             self::STATUS_DRAFT => 'پیش‌نویس',
-            self::STATUS_PENDING => 'در انتظار ترجمه خودکار',
-            self::STATUS_AUTO_READY => 'ترجمه خودکار آماده است',
+            self::STATUS_PENDING => 'در انتظار ترجمه تحریریه',
+            self::STATUS_AUTO_READY => 'ترجمه کمکی آماده است',
             self::STATUS_MANUAL_READY => 'ویرایش دستی شده',
-            self::STATUS_FAILED => 'ترجمه خودکار انجام نشد',
+            self::STATUS_FAILED => 'ترجمه کمکی انجام نشد',
             self::STATUS_STALE => 'قدیمی؛ منبع ناسا تغییر کرده است',
             self::STATUS_READY => 'آماده انتشار',
         );

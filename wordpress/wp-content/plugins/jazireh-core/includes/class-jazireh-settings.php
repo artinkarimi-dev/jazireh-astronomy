@@ -128,7 +128,7 @@ final class Jazireh_Settings
                 'require_image' => '1',
             ),
             'integrations' => array(
-                'apod_auto_localization' => class_exists('Jazireh_APOD_Localizer') && !empty(Jazireh_APOD_Localizer::provider_health()['configured']) ? '1' : '0',
+                'apod_auto_localization' => '0',
             ),
             'contact' => array(
                 'email' => 'SNazarieh@Hotmail.com',
@@ -725,13 +725,13 @@ final class Jazireh_Settings
         $monitor = class_exists('Jazireh_APOD_Localizer') ? Jazireh_APOD_Localizer::monitor() : array();
         ?>
         <div class="jazireh-settings-card" dir="rtl">
-            <h2>ترجمه خودکار عکس روز ناسا</h2>
-            <p>پس از دریافت APOD جدید، جزیره در پس‌زمینه محتوای فارسی را تولید و در وردپرس ذخیره می‌کند. کلید سرویس فقط روی سرور
-                خوانده می‌شود و اینجا نمایش داده نمی‌شود.</p>
+            <h2>ترجمه فارسی عکس روز ناسا</h2>
+            <p>حالت پیش‌فرض تولیدی، ترجمه دستی تحریریه است: APOD تازه دریافت می‌شود، متن اصلی NASA و نسخه منبع ذخیره می‌شود و
+                ویراستار ترجمه فارسی را در وردپرس ثبت و بازبینی می‌کند. اتصال خودکار فقط یک ابزار کمکی اختیاری آینده است.</p>
             <div class="jazireh-field">
                 <label>
                     <input type="checkbox" name="jazireh_settings[integrations][apod_auto_localization]" value="1" <?php checked(self::array_get($settings['integrations'], 'apod_auto_localization', '0'), '1'); ?>>
-                    ترجمه خودکار عکس روز ناسا
+                    فعال‌سازی کمک‌یار ترجمه خودکار اختیاری
                 </label>
             </div>
             <p><strong>وضعیت سرویس:</strong>
@@ -872,7 +872,7 @@ final class Jazireh_Settings
             'not_checked' => 'Not checked',
             'auto_ready' => 'ترجمه خودکار آماده است',
             'manual_ready' => 'ویرایش دستی شده',
-            'pending' => 'در انتظار ترجمه خودکار',
+            'pending' => 'در انتظار ترجمه تحریریه',
             'failed' => 'ترجمه خودکار انجام نشد',
             'missing_key' => 'نیاز به تنظیم کلید سرویس',
         );
