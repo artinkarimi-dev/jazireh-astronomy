@@ -4,6 +4,7 @@ import { test } from 'node:test'
 
 const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 'utf8')
+const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 
 test('public Phase 1 routes are registered in the React router', () => {
@@ -75,4 +76,14 @@ test('APOD stale or failed translations fall back to current NASA original', () 
     assert.equal(display.content, 'NASA current explanation')
     assert.match(display.warning, /NASA/)
   }
+})
+
+test('APOD image days use image rendering and not video embed markup', () => {
+  assert.match(apodPageSource, /const isVideo = item\?\.mediaType === 'video' && item\.sourceUrl/)
+  assert.match(apodPageSource, /isVideo \? \(/)
+  assert.match(apodPageSource, /<iframe/)
+  assert.match(apodPageSource, /<ApodImage item=\{item\} display=\{display\} \/>/)
+  assert.match(apodPageSource, /<img/)
+  assert.match(apodPageSource, /alt=\{usingFallback \? 'تصویر APOD با وضعیت داده غیرتازه' : display\.title\}/)
+  assert.doesNotMatch(apodPageSource, /youtube|YouTube|play button|fake play/i)
 })

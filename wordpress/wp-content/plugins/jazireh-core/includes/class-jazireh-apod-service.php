@@ -263,7 +263,7 @@ final class Jazireh_APOD_Service
         if ($media_type === 'video') {
             $image = isset($item['thumbnail_url']) ? esc_url_raw($item['thumbnail_url']) : '';
         } else {
-            $image = isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : (isset($item['url']) ? esc_url_raw($item['url']) : '');
+            $image = isset($item['url']) ? esc_url_raw($item['url']) : (isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : '');
         }
         $content = isset($item['explanation']) ? wp_strip_all_tags($item['explanation']) : '';
 
