@@ -10,7 +10,6 @@ export default function Footer() {
   const footer = settings.footer
   const youtube = settings.social.youtube
   const quickLinks = settings.menus.footer || []
-  const contactLines = [settings.contact.email, settings.contact.phone, settings.contact.address].filter(Boolean)
   const socialLinks = [
     { label: 'Instagram', url: settings.social.instagram },
     { label: 'Telegram', url: settings.social.telegram },
@@ -57,11 +56,6 @@ export default function Footer() {
             <ArrowUpLeft className="mr-auto h-4 w-4 text-slate-600" />
           </a>
           <p className="mt-4 text-xs leading-6 text-slate-600">{footer.youtube_description}</p>
-          {contactLines.length > 0 && (
-            <div className="mt-4 space-y-1 text-xs leading-6 text-slate-500">
-              {contactLines.map((line) => <div key={line}>{line}</div>)}
-            </div>
-          )}
         </div>
       </div>
 

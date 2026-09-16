@@ -119,7 +119,7 @@ final class Jazireh_Settings
                 'youtube_url' => 'https://www.youtube.com/@Jazireh',
                 'youtube_handle' => '@Jazireh',
                 'instagram_url' => '',
-                'telegram_url' => '',
+                'telegram_url' => 'https://t.me/jaziretv',
                 'x_url' => '',
                 'linkedin_url' => '',
             ),
@@ -236,18 +236,8 @@ final class Jazireh_Settings
                 ),
                 'siteIconUrl' => has_site_icon() ? get_site_icon_url(512) : '',
             ),
-            'social' => array(
-                'youtube' => array(
-                    'url' => self::array_get($settings['social'], 'youtube_url', ''),
-                    'handle' => self::array_get($settings['social'], 'youtube_handle', ''),
-                    'label' => self::array_get($settings['branding'], 'youtube_label', ''),
-                ),
-                'instagram' => self::array_get($settings['social'], 'instagram_url', ''),
-                'telegram' => self::array_get($settings['social'], 'telegram_url', ''),
-                'x' => self::array_get($settings['social'], 'x_url', ''),
-                'linkedin' => self::array_get($settings['social'], 'linkedin_url', ''),
-            ),
-            'contact' => $settings['contact'],
+            'social' => self::public_social_payload($settings),
+            'contact' => self::public_contact_payload($settings),
             'menus' => array(
                 'primary' => self::menu_items('jazireh_primary_menu', self::default_primary_menu()),
                 'mobile' => self::menu_items('jazireh_mobile_menu', self::default_mobile_menu()),
@@ -663,6 +653,39 @@ final class Jazireh_Settings
             'widget_message' => rawurlencode($message),
         ), admin_url('admin.php')));
         exit;
+    }
+
+    private static function public_contact_payload($settings)
+    {
+        $email = sanitize_email(self::array_get($settings['contact'], 'email', ''));
+
+        return array_filter(array(
+            'email' => $email,
+            'sponsorEmail' => $email,
+            'sponsorLabel' => 'همکاری و اسپانسری',
+            'sponsorPurpose' => 'صرفاً برای همکاری‌های تجاری و اسپانسری',
+            'telegramUrl' => self::array_get($settings['social'], 'telegram_url', ''),
+            'instagramUrl' => self::array_get($settings['social'], 'instagram_url', ''),
+        ), function ($value) {
+            return $value !== '';
+        });
+    }
+
+    private static function public_social_payload($settings)
+    {
+        return array_filter(array(
+            'youtube' => array_filter(array(
+                'url' => self::array_get($settings['social'], 'youtube_url', ''),
+                'handle' => self::array_get($settings['social'], 'youtube_handle', ''),
+                'label' => self::array_get($settings['branding'], 'youtube_label', ''),
+            ), function ($value) {
+                return $value !== '';
+            }),
+            'instagram' => self::array_get($settings['social'], 'instagram_url', ''),
+            'telegram' => self::array_get($settings['social'], 'telegram_url', ''),
+        ), function ($value) {
+            return $value !== '' && $value !== array();
+        });
     }
 
     private static function observatory_monitoring_panel()

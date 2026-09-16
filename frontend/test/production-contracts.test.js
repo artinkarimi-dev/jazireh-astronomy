@@ -5,6 +5,7 @@ import { test } from 'node:test'
 const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 'utf8')
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
+const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 
 test('public Phase 1 routes are registered in the React router', () => {
@@ -86,4 +87,14 @@ test('APOD image days use image rendering and not video embed markup', () => {
   assert.match(apodPageSource, /<img/)
   assert.match(apodPageSource, /alt=\{usingFallback \? 'تصویر APOD با وضعیت داده غیرتازه' : display\.title\}/)
   assert.doesNotMatch(apodPageSource, /youtube|YouTube|play button|fake play/i)
+})
+
+test('contact page presents only approved public communication channels', () => {
+  assert.match(contactPageSource, /telegramUrl/)
+  assert.match(contactPageSource, /instagramUrl/)
+  assert.match(contactPageSource, /sponsorEmail/)
+  assert.match(contactPageSource, /صرفاً برای همکاری‌های تجاری و اسپانسری/)
+  assert.match(contactPageSource, /target="_blank"/)
+  assert.match(contactPageSource, /rel="noopener noreferrer"/)
+  assert.doesNotMatch(contactPageSource, /Youtube|youtube|phone|address|WhatsApp|Twitter|X\/Twitter/)
 })

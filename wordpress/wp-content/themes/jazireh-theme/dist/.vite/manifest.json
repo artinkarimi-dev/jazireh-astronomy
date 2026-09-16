@@ -1,6 +1,6 @@
 {
-  "_EventCard-azO1zc0M.js": {
-    "file": "assets/EventCard-azO1zc0M.js",
+  "_EventCard-uqT_kZ9a.js": {
+    "file": "assets/EventCard-uqT_kZ9a.js",
     "name": "EventCard",
     "imports": [
       "_jsx-runtime-GpGw35nz.js",
@@ -9,8 +9,8 @@
       "index.html"
     ]
   },
-  "_PageHero-D7nviTc_.js": {
-    "file": "assets/PageHero-D7nviTc_.js",
+  "_PageHero-BMl3RoPq.js": {
+    "file": "assets/PageHero-BMl3RoPq.js",
     "name": "PageHero",
     "imports": [
       "_jsx-runtime-GpGw35nz.js",
@@ -176,7 +176,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/index-CCxReGMO.js",
+    "file": "assets/index-BohZc4FQ.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -204,11 +204,11 @@
       "src/pages/NotFoundPage.jsx"
     ],
     "css": [
-      "assets/index-K10RMQt2.css"
+      "assets/index-QxEWyN9v.css"
     ]
   },
   "src/pages/AboutPage.jsx": {
-    "file": "assets/AboutPage-ErB3kzaX.js",
+    "file": "assets/AboutPage-Bge7J7hH.js",
     "name": "AboutPage",
     "src": "src/pages/AboutPage.jsx",
     "isDynamicEntry": true,
@@ -218,12 +218,12 @@
       "_earth-D7TBeePX.js",
       "_satellite-BiQw1pCd.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/ApodPage.jsx": {
-    "file": "assets/ApodPage-Bcdm2t1S.js",
+    "file": "assets/ApodPage-C7WQBerw.js",
     "name": "ApodPage",
     "src": "src/pages/ApodPage.jsx",
     "isDynamicEntry": true,
@@ -231,37 +231,37 @@
       "_jsx-runtime-GpGw35nz.js",
       "_apodLocalization-CEEH3v8Q.js",
       "_external-link-CEVUvwch.js",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/ContactPage.jsx": {
-    "file": "assets/ContactPage-DxZSA-tW.js",
+    "file": "assets/ContactPage-Cd2WGWe7.js",
     "name": "ContactPage",
     "src": "src/pages/ContactPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "_jsx-runtime-GpGw35nz.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/EventsPage.jsx": {
-    "file": "assets/EventsPage-DEk0dQ_0.js",
+    "file": "assets/EventsPage-BZsOznwb.js",
     "name": "EventsPage",
     "src": "src/pages/EventsPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "_jsx-runtime-GpGw35nz.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js",
-      "_EventCard-azO1zc0M.js"
+      "_EventCard-uqT_kZ9a.js"
     ]
   },
   "src/pages/ExplorePage.jsx": {
-    "file": "assets/ExplorePage-jt4vvhLI.js",
+    "file": "assets/ExplorePage-BfCoAM-w.js",
     "name": "ExplorePage",
     "src": "src/pages/ExplorePage.jsx",
     "isDynamicEntry": true,
@@ -270,12 +270,12 @@
       "_info-DihH1026.js",
       "_orbit-CfxcIabx.js",
       "_fallback-sPIGORF5.js",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/HomePage.jsx": {
-    "file": "assets/HomePage-Dk4tfxZ_.js",
+    "file": "assets/HomePage-BRoVhal0.js",
     "name": "HomePage",
     "src": "src/pages/HomePage.jsx",
     "isDynamicEntry": true,
@@ -299,7 +299,7 @@
     ]
   },
   "src/pages/JazirehDailyDetailsPage.jsx": {
-    "file": "assets/JazirehDailyDetailsPage-BocZdik6.js",
+    "file": "assets/JazirehDailyDetailsPage--xxy6SkY.js",
     "name": "JazirehDailyDetailsPage",
     "src": "src/pages/JazirehDailyDetailsPage.jsx",
     "isDynamicEntry": true,
@@ -312,7 +312,7 @@
     ]
   },
   "src/pages/JazirehDailyPage.jsx": {
-    "file": "assets/JazirehDailyPage-DS0sz-TA.js",
+    "file": "assets/JazirehDailyPage-Bq-dOLG2.js",
     "name": "JazirehDailyPage",
     "src": "src/pages/JazirehDailyPage.jsx",
     "isDynamicEntry": true,
@@ -321,12 +321,12 @@
       "_arrow-left-B2x1ztMi.js",
       "_image-D6llAj-f.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/NewsDetailsPage.jsx": {
-    "file": "assets/NewsDetailsPage-C0a--mdP.js",
+    "file": "assets/NewsDetailsPage-lYIol5eh.js",
     "name": "NewsDetailsPage",
     "src": "src/pages/NewsDetailsPage.jsx",
     "isDynamicEntry": true,
@@ -341,7 +341,7 @@
     ]
   },
   "src/pages/NewsPage.jsx": {
-    "file": "assets/NewsPage-CVX1SPjl.js",
+    "file": "assets/NewsPage-ehPrtlsV.js",
     "name": "NewsPage",
     "src": "src/pages/NewsPage.jsx",
     "isDynamicEntry": true,
@@ -350,12 +350,12 @@
       "_arrow-left-B2x1ztMi.js",
       "_clock-3-ChSlDI47.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/NotFoundPage.jsx": {
-    "file": "assets/NotFoundPage-DTbA9Jsf.js",
+    "file": "assets/NotFoundPage-DBga__vz.js",
     "name": "NotFoundPage",
     "src": "src/pages/NotFoundPage.jsx",
     "isDynamicEntry": true,
@@ -368,7 +368,7 @@
     ]
   },
   "src/pages/RadarPage.jsx": {
-    "file": "assets/RadarPage-DKiH5wAt.js",
+    "file": "assets/RadarPage-DZ3-ASzd.js",
     "name": "RadarPage",
     "src": "src/pages/RadarPage.jsx",
     "isDynamicEntry": true,
@@ -380,12 +380,12 @@
       "_star-Bkyg8cLa.js",
       "_triangle-alert-D3nra1rT.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/SearchPage.jsx": {
-    "file": "assets/SearchPage-DKf84O4g.js",
+    "file": "assets/SearchPage-Dhyb6d6L.js",
     "name": "SearchPage",
     "src": "src/pages/SearchPage.jsx",
     "isDynamicEntry": true,
@@ -397,12 +397,12 @@
       "_orbit-CfxcIabx.js",
       "_video-CtoTEImT.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/SkyTodayPage.jsx": {
-    "file": "assets/SkyTodayPage-CIt97KWJ.js",
+    "file": "assets/SkyTodayPage-Za_tCl92.js",
     "name": "SkyTodayPage",
     "src": "src/pages/SkyTodayPage.jsx",
     "isDynamicEntry": true,
@@ -418,13 +418,13 @@
       "_star-Bkyg8cLa.js",
       "_fallback-sPIGORF5.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js",
-      "_EventCard-azO1zc0M.js"
+      "_EventCard-uqT_kZ9a.js"
     ]
   },
   "src/pages/TopicDetailsPage.jsx": {
-    "file": "assets/TopicDetailsPage-CNQPquCK.js",
+    "file": "assets/TopicDetailsPage-DMdOnoxp.js",
     "name": "TopicDetailsPage",
     "src": "src/pages/TopicDetailsPage.jsx",
     "isDynamicEntry": true,
@@ -436,12 +436,12 @@
       "_orbit-CfxcIabx.js",
       "_video-CtoTEImT.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/TopicsPage.jsx": {
-    "file": "assets/TopicsPage-BOF2Lo00.js",
+    "file": "assets/TopicsPage-ByRE_9YH.js",
     "name": "TopicsPage",
     "src": "src/pages/TopicsPage.jsx",
     "isDynamicEntry": true,
@@ -452,12 +452,12 @@
       "_sun-cOq1PYbj.js",
       "_orbit-CfxcIabx.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   },
   "src/pages/VideosPage.jsx": {
-    "file": "assets/VideosPage-BNBmab-R.js",
+    "file": "assets/VideosPage-BXUu5rpO.js",
     "name": "VideosPage",
     "src": "src/pages/VideosPage.jsx",
     "isDynamicEntry": true,
@@ -467,7 +467,7 @@
       "_maximize-2-Hcy2IMEk.js",
       "_play-DSFdoa6a.js",
       "index.html",
-      "_PageHero-D7nviTc_.js",
+      "_PageHero-BMl3RoPq.js",
       "_usePageMeta-CsRzHx3w.js"
     ]
   }

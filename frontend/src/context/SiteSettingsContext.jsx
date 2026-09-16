@@ -28,8 +28,11 @@ const defaultSettings = {
   },
   contact: {
     email: '',
-    phone: '',
-    address: ''
+    sponsorEmail: '',
+    sponsorLabel: 'همکاری و اسپانسری',
+    sponsorPurpose: 'صرفاً برای همکاری‌های تجاری و اسپانسری',
+    telegramUrl: '',
+    instagramUrl: ''
   },
   menus: {
     primary: navItems.map((item) => ({ ...item, url: item.path, external: false, target: '' })),
