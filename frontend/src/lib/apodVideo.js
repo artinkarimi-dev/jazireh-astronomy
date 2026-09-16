@@ -4,7 +4,7 @@ const TRUSTED_VIDEO_FILE_HOSTS = new Set(['apod.nasa.gov', 'www.apod.nasa.gov', 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.webm', '.ogg', '.ogv', '.mov']
 
 export function normalizeApodVideo(item = {}) {
-  const sourceUrl = item?.sourceUrl || item?.mediaUrl || ''
+  const sourceUrl = item?.mediaUrl || item?.sourceUrl || ''
   const parsed = parseHttpsUrl(sourceUrl)
   if (!parsed) {
     return {

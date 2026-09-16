@@ -49,8 +49,11 @@ assert_apod_video_contract($item['date'] === '2026-09-13', 'Formatted video date
 assert_apod_video_contract($item['mediaType'] === 'video', 'Formatted video media type is incorrect.');
 assert_apod_video_contract($item['titleOriginal'] === html_entity_decode(wp_strip_all_tags($data['title']), ENT_QUOTES, 'UTF-8'), 'Original video title was corrupted.');
 assert_apod_video_contract($item['contentOriginal'] !== '', 'Original video explanation was not preserved.');
-assert_apod_video_contract($item['sourceUrl'] === esc_url_raw($data['url']), 'Video source URL was not preserved.');
+assert_apod_video_contract($item['sourceName'] === 'NASA Astronomy Picture of the Day', 'Video APOD source name was not preserved.');
+assert_apod_video_contract($item['sourceUrl'] === 'https://apod.nasa.gov/apod/ap260913.html', 'Video source URL should be the APOD page URL.');
 assert_apod_video_contract($item['mediaUrl'] === esc_url_raw($data['url']), 'Video media URL was not preserved.');
+assert_apod_video_contract($item['copyright'] === 'Paolo Girotti', 'Real video copyright/credit was not preserved.');
+assert_apod_video_contract($item['photographer'] === 'Paolo Girotti', 'Video photographer compatibility field was not preserved.');
 assert_apod_video_contract($item['hdUrl'] === '', 'Video APOD should not expose image HD URL.');
 assert_apod_video_contract((bool) preg_match('/^[a-f0-9]{64}$/', $item['sourceHash']), 'Video APOD source hash is invalid.');
 assert_apod_video_contract($item['translationStatus'] === 'missing' || $item['translationStatus'] === 'pending', 'Unexpected video translation status.');

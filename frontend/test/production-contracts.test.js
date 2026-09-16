@@ -81,7 +81,7 @@ test('APOD stale or failed translations fall back to current NASA original', () 
 })
 
 test('APOD image days use image rendering and not video embed markup', () => {
-  assert.match(apodPageSource, /const isVideo = item\?\.mediaType === 'video' && item\.sourceUrl/)
+  assert.match(apodPageSource, /const isVideo = item\?\.mediaType === 'video' && \(item\.mediaUrl \|\| item\.sourceUrl\)/)
   assert.match(apodPageSource, /isVideo \? \(/)
   assert.match(apodPageSource, /<ApodVideo item=\{item\} display=\{display\} \/>/)
   assert.match(apodPageSource, /<ApodImage item=\{item\} display=\{display\} \/>/)
@@ -116,6 +116,13 @@ test('APOD video URL normalization supports safe providers and trusted NASA file
   assert.equal(nasaFile.type, 'file')
   assert.equal(nasaFile.canPlayInline, true)
   assert.equal(nasaFile.canEmbed, false)
+
+  const separatedSource = normalizeApodVideo({
+    sourceUrl: 'https://apod.nasa.gov/apod/ap260913.html',
+    mediaUrl: 'https://apod.nasa.gov/apod/image/2609/NoctilucentNeowise_Girotti.mp4',
+  })
+  assert.equal(separatedSource.type, 'file')
+  assert.equal(separatedSource.sourceUrl, 'https://apod.nasa.gov/apod/image/2609/NoctilucentNeowise_Girotti.mp4')
 })
 
 test('APOD unsafe or unsupported video URLs never create embeds', () => {
@@ -140,4 +147,13 @@ test('APOD video component is click-to-load and does not eagerly instantiate ifr
   assert.match(apodPageSource, /onClick=\{\(\) => setActivated\(true\)\}/)
   assert.match(apodPageSource, /loading="lazy"/)
   assert.doesNotMatch(apodPageSource, /dangerouslySetInnerHTML/)
+})
+
+test('APOD attribution separates source, media, and real credit without fake ownership', () => {
+  assert.match(apodPageSource, /sourceName = item\?\.sourceName \|\| 'NASA Astronomy Picture of the Day'/)
+  assert.match(apodPageSource, /const credit = item\?\.copyright \|\| item\?\.credit \|\| item\?\.photographer \|\| ''/)
+  assert.match(apodPageSource, /اعتبار \/ حق نشر/)
+  assert.match(apodPageSource, /رسانه اصلی/)
+  assert.match(apodPageSource, /safeHttpsUrl/)
+  assert.doesNotMatch(apodPageSource, /© NASA|Copyright:|اعتبار تصویر: \{item\.photographer \|\| 'منبع اصلی تصویر'\}/)
 })

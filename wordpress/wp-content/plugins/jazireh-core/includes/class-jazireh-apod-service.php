@@ -269,6 +269,9 @@ final class Jazireh_APOD_Service
 
         $title = html_entity_decode(wp_strip_all_tags(isset($item['title']) ? $item['title'] : 'NASA APOD'), ENT_QUOTES, 'UTF-8');
         $date = sanitize_text_field(isset($item['date']) ? $item['date'] : '');
+        $copyright = sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : '');
+        $source_url = self::apod_source_url($date);
+        $media_url = isset($item['url']) ? esc_url_raw($item['url']) : '';
 
         return self::localize_item(array(
             'id' => isset($item['date']) ? abs(crc32((string) $item['date'])) : 0,
@@ -287,9 +290,12 @@ final class Jazireh_APOD_Service
             'translationStatus' => 'missing',
             'hasPersianEditorial' => false,
             'localizationWarning' => 'متن اصلی NASA به انگلیسی نمایش داده می‌شود؛ توضیح فارسی این تصویر هنوز آماده نشده است.',
-            'photographer' => sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : 'NASA'),
-            'sourceUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
-            'mediaUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+            'sourceName' => 'NASA Astronomy Picture of the Day',
+            'sourceUrl' => $source_url,
+            'mediaUrl' => $media_url,
+            'copyright' => $copyright,
+            'credit' => $copyright,
+            'photographer' => $copyright,
             'hdUrl' => isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : '',
             'thumbnailUrl' => isset($item['thumbnail_url']) ? esc_url_raw($item['thumbnail_url']) : '',
             'serviceVersion' => sanitize_text_field(isset($item['service_version']) ? $item['service_version'] : ''),
@@ -298,8 +304,11 @@ final class Jazireh_APOD_Service
                 'titleOriginal' => $title,
                 'contentOriginal' => $content,
                 'mediaType' => $media_type,
-                'photographer' => sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : 'NASA'),
-                'sourceUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+                'copyright' => $copyright,
+                'credit' => $copyright,
+                'photographer' => $copyright,
+                'sourceUrl' => $source_url,
+                'mediaUrl' => $media_url,
                 'hdUrl' => isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : '',
                 'serviceVersion' => sanitize_text_field(isset($item['service_version']) ? $item['service_version'] : ''),
             )) : '',
@@ -383,5 +392,14 @@ final class Jazireh_APOD_Service
     private static function clean_text($text)
     {
         return html_entity_decode(wp_strip_all_tags((string) $text), ENT_QUOTES, 'UTF-8');
+    }
+
+    private static function apod_source_url($date)
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date)) {
+            return 'https://apod.nasa.gov/apod/';
+        }
+        $timestamp = strtotime((string) $date);
+        return $timestamp ? 'https://apod.nasa.gov/apod/ap' . gmdate('ymd', $timestamp) . '.html' : 'https://apod.nasa.gov/apod/';
     }
 }

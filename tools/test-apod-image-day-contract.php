@@ -28,14 +28,17 @@ $image_item = $formatter->invoke(null, array(
     'media_type' => 'image',
     'url' => $standard_url,
     'hdurl' => $hd_url,
-    'copyright' => 'NASA',
+    'copyright' => 'Verified Creator',
     'service_version' => 'v1',
 ));
 
 assert_apod_image_contract($image_item['mediaType'] === 'image', 'Image-day media type was not preserved.');
 assert_apod_image_contract($image_item['image'] === $standard_url, 'Image-day primary image should use NASA url, not hdurl.');
-assert_apod_image_contract($image_item['sourceUrl'] === $standard_url, 'Image-day sourceUrl should preserve NASA url.');
+assert_apod_image_contract($image_item['sourceName'] === 'NASA Astronomy Picture of the Day', 'Image-day source name was not preserved.');
+assert_apod_image_contract($image_item['sourceUrl'] === 'https://apod.nasa.gov/apod/ap990201.html', 'Image-day sourceUrl should be the APOD page URL.');
 assert_apod_image_contract($image_item['mediaUrl'] === $standard_url, 'Image-day mediaUrl should preserve NASA url.');
+assert_apod_image_contract($image_item['copyright'] === 'Verified Creator', 'Image-day copyright was not preserved.');
+assert_apod_image_contract($image_item['photographer'] === 'Verified Creator', 'Image-day photographer compatibility field was not preserved.');
 assert_apod_image_contract($image_item['hdUrl'] === $hd_url, 'Image-day hdUrl should remain available separately.');
 assert_apod_image_contract((bool) preg_match('/^[a-f0-9]{64}$/', $image_item['sourceHash']), 'Image-day source hash is invalid.');
 
@@ -50,6 +53,8 @@ $no_hd_item = $formatter->invoke(null, array(
 
 assert_apod_image_contract($no_hd_item['image'] === $standard_url, 'Missing hdurl should not break the primary image URL.');
 assert_apod_image_contract($no_hd_item['hdUrl'] === '', 'Missing hdurl should normalize to an empty string.');
+assert_apod_image_contract($no_hd_item['copyright'] === '', 'Missing copyright should not fabricate a copyright holder.');
+assert_apod_image_contract($no_hd_item['photographer'] === '', 'Missing copyright should not fabricate a photographer.');
 
 $video_item = $formatter->invoke(null, array(
     'date' => '2099-02-03',
@@ -58,11 +63,14 @@ $video_item = $formatter->invoke(null, array(
     'media_type' => 'video',
     'url' => 'https://www.youtube.com/embed/example',
     'thumbnail_url' => 'https://img.youtube.com/vi/example/hqdefault.jpg',
+    'copyright' => 'Video Creator',
     'service_version' => 'v1',
 ));
 
 assert_apod_image_contract($video_item['mediaType'] === 'video', 'Video media type was not preserved.');
 assert_apod_image_contract($video_item['image'] === 'https://img.youtube.com/vi/example/hqdefault.jpg', 'Video APOD should use thumbnail_url as image.');
-assert_apod_image_contract($video_item['sourceUrl'] === 'https://www.youtube.com/embed/example', 'Video source URL was not preserved.');
+assert_apod_image_contract($video_item['sourceUrl'] === 'https://apod.nasa.gov/apod/ap990203.html', 'Video source URL should be the APOD page URL.');
+assert_apod_image_contract($video_item['mediaUrl'] === 'https://www.youtube.com/embed/example', 'Video media URL was not preserved.');
+assert_apod_image_contract($video_item['copyright'] === 'Video Creator', 'Video copyright was not preserved.');
 
 echo "APOD image-day rendering contract tests passed.\n";

@@ -21,7 +21,7 @@ export default function ApodPage() {
       if (!active || !response.data?.length) return
       const blockedLocalImages = ['/media/galaxy.jpg', '/media/nebula.jpg', '/media/saturn.jpg', '/media/hero-planet.jpg']
       const usableItems = response.data.filter((entry) => {
-        if (entry.mediaType === 'video') return Boolean(entry.sourceUrl)
+        if (entry.mediaType === 'video') return Boolean(entry.mediaUrl || entry.sourceUrl)
         return entry.image && !blockedLocalImages.includes(entry.image)
       })
       if (usableItems.length) { setItems(usableItems); setIndex(0) }
@@ -32,7 +32,7 @@ export default function ApodPage() {
 
   const item = items[index] || null
   const display = getApodDisplay(item)
-  const isVideo = item?.mediaType === 'video' && item.sourceUrl
+  const isVideo = item?.mediaType === 'video' && (item.mediaUrl || item.sourceUrl)
   const change = (direction) => setIndex((current) => (current + direction + items.length) % items.length)
   usePageMeta(display.title || 'عکس روز ناسا', display.summary || 'تصویر نجومی روز ناسا در جزیره نجوم.')
 
@@ -76,13 +76,52 @@ export default function ApodPage() {
             ) : null}
             {item.displayWarning ? <p className="mt-4 text-xs leading-6 text-amber-100">{item.displayWarning}</p> : null}
             <div className="mt-7 border-t border-white/[.08] pt-5 text-xs leading-6 text-slate-500">
-              <span>اعتبار تصویر: {item.photographer || 'منبع اصلی تصویر'}</span>
-              {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-4 flex w-fit items-center gap-2 text-amber-200">مشاهده منبع رسمی <ExternalLink className="h-4 w-4" /></a>}
+              <Attribution item={item} />
             </div>
           </aside>
         </div>}
       </section>
     </>
+  )
+}
+
+function Attribution({ item }) {
+  const sourceName = item?.sourceName || 'NASA Astronomy Picture of the Day'
+  const sourceUrl = safeHttpsUrl(item?.sourceUrl)
+  const mediaUrl = safeHttpsUrl(item?.mediaUrl)
+  const credit = item?.copyright || item?.credit || item?.photographer || ''
+
+  return (
+    <dl className="space-y-3">
+      <div>
+        <dt className="text-slate-600">منبع</dt>
+        <dd className="mt-1 font-bold text-slate-300">
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label={`مشاهده منبع رسمی APOD: ${sourceName}`}>
+              {sourceName}
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          ) : sourceName}
+        </dd>
+      </div>
+      {credit ? (
+        <div>
+          <dt className="text-slate-600">اعتبار / حق نشر</dt>
+          <dd className="mt-1 font-bold text-slate-300">{credit}</dd>
+        </div>
+      ) : null}
+      {mediaUrl && mediaUrl !== sourceUrl ? (
+        <div>
+          <dt className="text-slate-600">رسانه اصلی</dt>
+          <dd className="mt-1">
+            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50" aria-label="مشاهده رسانه اصلی APOD">
+              مشاهده رسانه
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </dd>
+        </div>
+      ) : null}
+    </dl>
   )
 }
 
@@ -187,6 +226,16 @@ function ApodVideo({ item, display }) {
       </div>
     </div>
   )
+}
+
+function safeHttpsUrl(value = '') {
+  if (!value || typeof value !== 'string') return ''
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' ? url.href : ''
+  } catch {
+    return ''
+  }
 }
 
 function ApodImage({ item, display }) {
