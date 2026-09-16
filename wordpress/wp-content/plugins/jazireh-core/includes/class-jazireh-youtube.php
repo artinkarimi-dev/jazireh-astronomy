@@ -10,14 +10,48 @@ final class Jazireh_YouTube
     const LAST_GOOD_PREFIX = 'jazireh_youtube_latest_videos_last_good_';
     const META_CACHE_KEY = 'jazireh_youtube_channel_meta';
     const STATUS_OPTION = 'jazireh_youtube_status';
+    const REFRESH_HOOK = 'jazireh_refresh_youtube_videos';
     const CHANNEL_META_TTL = DAY_IN_SECONDS;
-    const VIDEOS_TTL = 45 * MINUTE_IN_SECONDS;
+    const VIDEOS_TTL = 4 * HOUR_IN_SECONDS;
     const FETCH_CANDIDATES = 12;
     const DEFAULT_HANDLE = '@Jazireh';
+    const DEFAULT_CHANNEL_ID = 'UCTcdXS_pSh5K74g0UmlzLuA';
+    const DEFAULT_CHANNEL_URL = 'https://www.youtube.com/@Jazireh';
 
     public static function boot()
     {
+        add_filter('cron_schedules', array(__CLASS__, 'cron_schedules'));
         add_action('admin_post_jazireh_refresh_videos', array(__CLASS__, 'handle_refresh'));
+        add_action(self::REFRESH_HOOK, array(__CLASS__, 'scheduled_refresh'));
+        add_action('init', array(__CLASS__, 'maybe_schedule_refresh'));
+    }
+
+    public static function cron_schedules($schedules)
+    {
+        if (!isset($schedules['jazireh_every_4_hours'])) {
+            $schedules['jazireh_every_4_hours'] = array(
+                'interval' => 4 * HOUR_IN_SECONDS,
+                'display' => __('Every 4 hours', 'jazireh-core'),
+            );
+        }
+        return $schedules;
+    }
+
+    public static function maybe_schedule_refresh()
+    {
+        if (!wp_next_scheduled(self::REFRESH_HOOK)) {
+            wp_schedule_event(time() + 10 * MINUTE_IN_SECONDS, 'jazireh_every_4_hours', self::REFRESH_HOOK);
+        }
+    }
+
+    public static function clear_schedule()
+    {
+        wp_clear_scheduled_hook(self::REFRESH_HOOK);
+    }
+
+    public static function scheduled_refresh()
+    {
+        self::latest_videos(6, true);
     }
 
     public static function latest_videos($limit = 3, $force_refresh = false)
@@ -49,31 +83,32 @@ final class Jazireh_YouTube
             'cache_state' => 'refreshing',
         ));
 
+        $source = 'youtube-feed';
         $api_key = self::api_key();
-        if (!$api_key) {
-            return self::fallback_or_error(
-                $limit,
-                new WP_Error('jazireh_youtube_missing_api_key', 'YouTube API key is not configured.', array('status' => 503))
-            );
-        }
-
         $channel_meta = self::channel_meta($api_key);
         if (is_wp_error($channel_meta)) {
             return self::fallback_or_error($limit, $channel_meta);
         }
 
-        $video_ids = self::latest_candidate_video_ids($api_key, $channel_meta['uploadsPlaylistId'], $limit);
-        if (is_wp_error($video_ids)) {
-            return self::fallback_or_error($limit, $video_ids, $channel_meta);
+        $videos = null;
+        if ($api_key) {
+            $videos = self::latest_api_videos($api_key, $channel_meta, $limit);
+            if (is_wp_error($videos)) {
+                self::touch_status(array(
+                    'last_error' => $videos->get_error_message(),
+                ));
+                $videos = null;
+            } else {
+                $source = 'youtube-data-api';
+            }
         }
 
-        if (empty($video_ids)) {
-            $videos = array();
-        } else {
-            $videos = self::video_details($api_key, $video_ids, $limit);
+        if ($videos === null) {
+            $videos = self::feed_videos($channel_meta, $limit);
             if (is_wp_error($videos)) {
                 return self::fallback_or_error($limit, $videos, $channel_meta);
             }
+            $source = 'youtube-official-feed';
         }
 
         set_transient($cache_key, $videos, self::VIDEOS_TTL);
@@ -85,6 +120,8 @@ final class Jazireh_YouTube
             'cache_state' => 'fresh',
             'channel_id' => $channel_meta['channelId'],
             'uploads_playlist_id' => $channel_meta['uploadsPlaylistId'],
+            'source' => $source,
+            'fetched_at' => current_time('mysql', 1),
             'videos_count' => count($videos),
         ));
 
@@ -112,7 +149,7 @@ final class Jazireh_YouTube
 
     public static function prewarm()
     {
-        $videos = self::latest_videos(3, true);
+        $videos = self::latest_videos(6, false);
         if (is_wp_error($videos)) {
             return array(
                 'status' => Jazireh_Widgets::STATE_ERROR,
@@ -146,6 +183,10 @@ final class Jazireh_YouTube
             'cache_state' => (string) ($status['cache_state'] ?? self::cache_state(3)),
             'channel_id' => (string) ($status['channel_id'] ?? ''),
             'uploads_playlist_id' => (string) ($status['uploads_playlist_id'] ?? ''),
+            'source' => (string) ($status['source'] ?? ''),
+            'refresh_hook' => self::REFRESH_HOOK,
+            'refresh_recurrence' => wp_get_schedule(self::REFRESH_HOOK) ?: '',
+            'next_refresh' => (int) (wp_next_scheduled(self::REFRESH_HOOK) ?: 0),
             'videos_count' => (int) ($status['videos_count'] ?? 0),
         );
     }
@@ -165,9 +206,12 @@ final class Jazireh_YouTube
                 <div class="jazireh-field"><label>Last successful fetch</label><input type="text" readonly class="regular-text" value="<?php echo esc_attr($diagnostics['last_success']); ?>"></div>
                 <div class="jazireh-field"><label>Last attempt</label><input type="text" readonly class="regular-text" value="<?php echo esc_attr($diagnostics['last_attempt']); ?>"></div>
                 <div class="jazireh-field"><label>Current cache state</label><input type="text" readonly class="regular-text" value="<?php echo esc_attr($diagnostics['cache_state']); ?>"></div>
+                <div class="jazireh-field"><label>Ingest source</label><input type="text" readonly class="regular-text" value="<?php echo esc_attr($diagnostics['source']); ?>"></div>
                 <div class="jazireh-field"><label>Latest items cached</label><input type="text" readonly class="regular-text" value="<?php echo esc_attr((string) $diagnostics['videos_count']); ?>"></div>
                 <div class="jazireh-field"><label>Channel ID</label><input type="text" readonly class="regular-text code" value="<?php echo esc_attr($diagnostics['channel_id']); ?>"></div>
                 <div class="jazireh-field"><label>Uploads playlist</label><input type="text" readonly class="regular-text code" value="<?php echo esc_attr($diagnostics['uploads_playlist_id']); ?>"></div>
+                <div class="jazireh-field"><label>Cron hook</label><input type="text" readonly class="regular-text code" value="<?php echo esc_attr($diagnostics['refresh_hook']); ?>"></div>
+                <div class="jazireh-field"><label>Cron recurrence</label><input type="text" readonly class="regular-text code" value="<?php echo esc_attr($diagnostics['refresh_recurrence']); ?>"></div>
                 <div class="jazireh-field" style="grid-column:1 / -1"><label>Last error</label><textarea rows="3" readonly><?php echo esc_textarea($diagnostics['last_error']); ?></textarea></div>
             </div>
             <?php if (current_user_can('manage_options')) : ?>
@@ -205,7 +249,7 @@ final class Jazireh_YouTube
         return is_string($env_key) ? $env_key : '';
     }
 
-    private static function channel_meta($api_key)
+    private static function channel_meta($api_key = '')
     {
         if (defined('JAZIREH_YOUTUBE_CHANNEL_ID') && JAZIREH_YOUTUBE_CHANNEL_ID) {
             $channel_id = sanitize_text_field(JAZIREH_YOUTUBE_CHANNEL_ID);
@@ -213,7 +257,7 @@ final class Jazireh_YouTube
             if (is_array($cached) && ($cached['channelId'] ?? '') === $channel_id && !empty($cached['uploadsPlaylistId'])) {
                 return $cached;
             }
-            return self::channel_meta_from_channel_id($api_key, $channel_id);
+            return $api_key ? self::channel_meta_from_channel_id($api_key, $channel_id) : self::channel_meta_from_known_id($channel_id);
         }
 
         $cached = get_transient(self::META_CACHE_KEY);
@@ -221,7 +265,11 @@ final class Jazireh_YouTube
             return $cached;
         }
 
-        return self::channel_meta_from_handle($api_key, self::configured_handle());
+        if ($api_key) {
+            return self::channel_meta_from_handle($api_key, self::configured_handle());
+        }
+
+        return self::channel_meta_from_known_id(self::configured_channel_id());
     }
 
     private static function channel_meta_from_handle($api_key, $handle)
@@ -287,6 +335,35 @@ final class Jazireh_YouTube
         return $meta;
     }
 
+    private static function channel_meta_from_known_id($channel_id)
+    {
+        $channel_id = self::sanitize_channel_id($channel_id);
+        if ($channel_id === '') {
+            return new WP_Error('jazireh_youtube_channel_invalid', 'YouTube channel metadata is incomplete.', array('status' => 502));
+        }
+
+        $meta = array(
+            'channelId' => $channel_id,
+            'uploadsPlaylistId' => 'UU' . substr($channel_id, 2),
+            'channelTitle' => 'Jazireh',
+            'resolvedAt' => current_time('mysql', 1),
+        );
+        set_transient(self::META_CACHE_KEY, $meta, self::CHANNEL_META_TTL);
+        self::touch_status(array(
+            'channel_id' => $meta['channelId'],
+            'uploads_playlist_id' => $meta['uploadsPlaylistId'],
+        ));
+        return $meta;
+    }
+
+    private static function configured_channel_id()
+    {
+        if (defined('JAZIREH_YOUTUBE_CHANNEL_ID') && JAZIREH_YOUTUBE_CHANNEL_ID) {
+            return (string) JAZIREH_YOUTUBE_CHANNEL_ID;
+        }
+        return self::DEFAULT_CHANNEL_ID;
+    }
+
     private static function configured_handle()
     {
         $settings = Jazireh_Settings::get_settings();
@@ -299,6 +376,20 @@ final class Jazireh_YouTube
             return $constant[0] === '@' ? $constant : '@' . $constant;
         }
         return self::DEFAULT_HANDLE;
+    }
+
+    private static function latest_api_videos($api_key, array $channel_meta, $limit)
+    {
+        $video_ids = self::latest_candidate_video_ids($api_key, $channel_meta['uploadsPlaylistId'], $limit);
+        if (is_wp_error($video_ids)) {
+            return $video_ids;
+        }
+
+        if (empty($video_ids)) {
+            return array();
+        }
+
+        return self::video_details($api_key, $video_ids, $limit, $channel_meta);
     }
 
     private static function latest_candidate_video_ids($api_key, $uploads_playlist_id, $limit)
@@ -332,7 +423,7 @@ final class Jazireh_YouTube
         return array_values(array_unique($ids));
     }
 
-    private static function video_details($api_key, array $video_ids, $limit)
+    private static function video_details($api_key, array $video_ids, $limit, array $channel_meta = array())
     {
         $url = add_query_arg(array(
             'part' => 'snippet,contentDetails,liveStreamingDetails,status',
@@ -358,7 +449,7 @@ final class Jazireh_YouTube
                 continue;
             }
 
-            $normalized = self::normalize_video($items_by_id[$video_id]);
+            $normalized = self::normalize_video($items_by_id[$video_id], $channel_meta, 'youtube-data-api');
             if (!$normalized) {
                 continue;
             }
@@ -372,9 +463,100 @@ final class Jazireh_YouTube
         return $videos;
     }
 
-    private static function normalize_video($item)
+    private static function feed_videos(array $channel_meta, $limit)
     {
-        $video_id = sanitize_text_field((string) ($item['id'] ?? ''));
+        $channel_id = self::sanitize_channel_id((string) ($channel_meta['channelId'] ?? ''));
+        if ($channel_id === '') {
+            return new WP_Error('jazireh_youtube_channel_invalid', 'YouTube channel metadata is incomplete.', array('status' => 502));
+        }
+
+        $url = add_query_arg(array('channel_id' => $channel_id), 'https://www.youtube.com/feeds/videos.xml');
+        $response = wp_remote_get($url, array('timeout' => 12));
+        if (is_wp_error($response)) {
+            return new WP_Error('jazireh_youtube_feed_failed', $response->get_error_message(), array('status' => 502));
+        }
+
+        $status = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        if ($status < 200 || $status >= 300 || trim((string) $body) === '') {
+            return new WP_Error('jazireh_youtube_feed_bad_response', 'YouTube official feed returned an invalid response.', array('status' => 502));
+        }
+
+        $xml = self::parse_feed_xml($body);
+        if (is_wp_error($xml)) {
+            return $xml;
+        }
+
+        $videos = array();
+        foreach ($xml->entry as $entry) {
+            $normalized = self::normalize_feed_entry($entry, $channel_meta);
+            if (!$normalized) {
+                continue;
+            }
+            $videos[$normalized['id']] = $normalized;
+            if (count($videos) >= $limit) {
+                break;
+            }
+        }
+
+        return array_values($videos);
+    }
+
+    private static function parse_feed_xml($body)
+    {
+        $previous = libxml_use_internal_errors(true);
+        $xml = simplexml_load_string((string) $body);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (!$xml) {
+            return new WP_Error('jazireh_youtube_feed_invalid_xml', 'YouTube official feed returned malformed XML.', array('status' => 502));
+        }
+
+        return $xml;
+    }
+
+    private static function normalize_feed_entry(SimpleXMLElement $entry, array $channel_meta)
+    {
+        $namespaces = $entry->getNamespaces(true);
+        $yt = isset($namespaces['yt']) ? $entry->children($namespaces['yt']) : null;
+        $media = isset($namespaces['media']) ? $entry->children($namespaces['media']) : null;
+
+        $video_id = self::sanitize_video_id($yt ? (string) $yt->videoId : '');
+        if ($video_id === '') {
+            $video_id = self::sanitize_video_id((string) $entry->id);
+        }
+        if ($video_id === '') {
+            return null;
+        }
+
+        $title = html_entity_decode(wp_strip_all_tags((string) $entry->title), ENT_QUOTES, 'UTF-8');
+        $description = '';
+        $thumbnail = '';
+        if ($media && isset($media->group)) {
+            $description = wp_strip_all_tags((string) $media->group->description);
+            if (isset($media->group->thumbnail)) {
+                $attrs = $media->group->thumbnail->attributes();
+                $thumbnail = isset($attrs['url']) ? (string) $attrs['url'] : '';
+            }
+        }
+
+        return self::normalize_video_payload(array(
+            'id' => $video_id,
+            'title' => $title,
+            'description' => $description,
+            'thumbnail' => $thumbnail,
+            'duration' => '',
+            'publishedAt' => sanitize_text_field((string) $entry->published),
+            'channelTitle' => sanitize_text_field((string) ($channel_meta['channelTitle'] ?? 'Jazireh')),
+            'channelId' => sanitize_text_field((string) ($channel_meta['channelId'] ?? self::DEFAULT_CHANNEL_ID)),
+            'ingestSource' => 'youtube-official-feed',
+        ));
+    }
+
+    private static function normalize_video($item, array $channel_meta = array(), $ingest_source = 'youtube-data-api')
+    {
+        $video_id = self::sanitize_video_id((string) ($item['id'] ?? ''));
         if ($video_id === '') {
             return null;
         }
@@ -395,19 +577,51 @@ final class Jazireh_YouTube
 
         $thumbnails = (array) ($snippet['thumbnails'] ?? array());
         $thumbnail = self::thumbnail_url($thumbnails);
-        $youtube_url = 'https://www.youtube.com/watch?v=' . rawurlencode($video_id);
 
-        return array(
+        return self::normalize_video_payload(array(
             'id' => $video_id,
             'title' => html_entity_decode(wp_strip_all_tags((string) ($snippet['title'] ?? '')), ENT_QUOTES, 'UTF-8'),
             'description' => wp_strip_all_tags((string) ($snippet['description'] ?? '')),
-            'youtubeUrl' => $youtube_url,
-            'embedUrl' => 'https://www.youtube.com/embed/' . rawurlencode($video_id),
-            'poster' => esc_url_raw($thumbnail),
+            'thumbnail' => $thumbnail,
             'duration' => self::format_duration($duration_iso),
             'publishedAt' => sanitize_text_field((string) ($snippet['publishedAt'] ?? '')),
             'channelTitle' => sanitize_text_field((string) ($snippet['channelTitle'] ?? 'Jazireh')),
+            'channelId' => sanitize_text_field((string) ($snippet['channelId'] ?? ($channel_meta['channelId'] ?? self::DEFAULT_CHANNEL_ID))),
+            'ingestSource' => $ingest_source,
+        ));
+    }
+
+    private static function normalize_video_payload(array $payload)
+    {
+        $video_id = self::sanitize_video_id((string) ($payload['id'] ?? ''));
+        if ($video_id === '') {
+            return null;
+        }
+
+        $youtube_url = self::watch_url($video_id);
+        $embed_url = self::embed_url($video_id);
+        $thumbnail = self::safe_youtube_thumbnail((string) ($payload['thumbnail'] ?? ''), $video_id);
+        $channel_id = self::sanitize_channel_id((string) ($payload['channelId'] ?? self::DEFAULT_CHANNEL_ID));
+        $fetched_at = current_time('mysql', 1);
+
+        return array(
+            'id' => $video_id,
+            'videoId' => $video_id,
+            'title' => sanitize_text_field((string) ($payload['title'] ?? '')),
+            'description' => wp_strip_all_tags((string) ($payload['description'] ?? '')),
+            'youtubeUrl' => $youtube_url,
+            'sourceUrl' => $youtube_url,
+            'embedUrl' => $embed_url,
+            'poster' => $thumbnail,
+            'thumbnail' => $thumbnail,
+            'duration' => sanitize_text_field((string) ($payload['duration'] ?? '')),
+            'publishedAt' => sanitize_text_field((string) ($payload['publishedAt'] ?? '')),
+            'channelTitle' => sanitize_text_field((string) ($payload['channelTitle'] ?? 'Jazireh')),
+            'channelId' => $channel_id,
+            'channelUrl' => $channel_id ? 'https://www.youtube.com/channel/' . rawurlencode($channel_id) : self::DEFAULT_CHANNEL_URL,
             'type' => 'youtube',
+            'ingestSource' => sanitize_key((string) ($payload['ingestSource'] ?? 'youtube')),
+            'fetchedAt' => $fetched_at,
         );
     }
 
@@ -447,6 +661,41 @@ final class Jazireh_YouTube
             }
         }
         return '';
+    }
+
+    private static function sanitize_video_id($video_id)
+    {
+        if (strpos((string) $video_id, 'yt:video:') === 0) {
+            $video_id = substr((string) $video_id, 9);
+        }
+        return preg_match('/^[A-Za-z0-9_-]{6,}$/', (string) $video_id) ? (string) $video_id : '';
+    }
+
+    private static function sanitize_channel_id($channel_id)
+    {
+        return preg_match('/^UC[A-Za-z0-9_-]{22}$/', (string) $channel_id) ? (string) $channel_id : '';
+    }
+
+    private static function watch_url($video_id)
+    {
+        return 'https://www.youtube.com/watch?v=' . rawurlencode($video_id);
+    }
+
+    private static function embed_url($video_id)
+    {
+        return 'https://www.youtube.com/embed/' . rawurlencode($video_id);
+    }
+
+    private static function safe_youtube_thumbnail($thumbnail, $video_id)
+    {
+        $thumbnail = esc_url_raw((string) $thumbnail);
+        if ($thumbnail) {
+            $host = wp_parse_url($thumbnail, PHP_URL_HOST);
+            if (in_array($host, array('i.ytimg.com', 'img.youtube.com', 'yt3.ggpht.com'), true)) {
+                return $thumbnail;
+            }
+        }
+        return 'https://i.ytimg.com/vi/' . rawurlencode($video_id) . '/hqdefault.jpg';
     }
 
     private static function remote_json($url)

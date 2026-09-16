@@ -73,6 +73,7 @@ function jazireh_core_activate()
     Jazireh_News::seed_content();
     Jazireh_Newsletter::maybe_upgrade_schema();
     Jazireh_Settings::schedule_widget_prewarm();
+    Jazireh_YouTube::maybe_schedule_refresh();
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, 'jazireh_core_activate');
@@ -80,6 +81,7 @@ register_activation_hook(__FILE__, 'jazireh_core_activate');
 function jazireh_core_deactivate()
 {
     Jazireh_Settings::clear_widget_prewarm();
+    Jazireh_YouTube::clear_schedule();
     flush_rewrite_rules();
 }
 register_deactivation_hook(__FILE__, 'jazireh_core_deactivate');

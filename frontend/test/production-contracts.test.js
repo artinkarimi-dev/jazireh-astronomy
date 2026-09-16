@@ -6,6 +6,7 @@ const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'ut
 const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 'utf8')
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
+const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
@@ -98,6 +99,18 @@ test('contact page presents only approved public communication channels', () => 
   assert.match(contactPageSource, /target="_blank"/)
   assert.match(contactPageSource, /rel="noopener noreferrer"/)
   assert.doesNotMatch(contactPageSource, /Youtube|youtube|phone|address|WhatsApp|Twitter|X\/Twitter/)
+})
+
+test('videos page uses cached internal data and safe click-to-load YouTube embeds', () => {
+  assert.match(videosPageSource, /api\.get\('\/api\/videos'\)/)
+  assert.match(videosPageSource, /TRUSTED_YOUTUBE_HOSTS/)
+  assert.match(videosPageSource, /parsed\.protocol !== 'https:'/)
+  assert.match(videosPageSource, /!TRUSTED_YOUTUBE_HOSTS\.has\(host\)/)
+  assert.match(videosPageSource, /YOUTUBE_ID_PATTERN/)
+  assert.match(videosPageSource, /setIframeActivated\(true\)/)
+  assert.match(videosPageSource, /loading="lazy"/)
+  assert.doesNotMatch(videosPageSource, /dangerouslySetInnerHTML/)
+  assert.doesNotMatch(videosPageSource, /https:\/\/www\.googleapis\.com\/youtube/)
 })
 
 test('APOD video URL normalization supports safe providers and trusted NASA files', () => {

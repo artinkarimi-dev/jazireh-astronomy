@@ -866,7 +866,7 @@ final class Jazireh_Settings
             ),
             'youtube' => array(
                 'name' => 'YouTube Videos',
-                'source' => 'YouTube Data API',
+                'source' => 'YouTube Data API / official feed',
                 'cache_key' => Jazireh_YouTube::CACHE_PREFIX . '3',
                 'prewarm_callback' => array('Jazireh_YouTube', 'prewarm'),
                 'refresh_callback' => array('Jazireh_YouTube', 'prewarm'),

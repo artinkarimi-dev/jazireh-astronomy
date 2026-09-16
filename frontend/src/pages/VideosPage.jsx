@@ -6,6 +6,8 @@ import { api } from '../lib/api'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 
 let youtubeApiPromise
+const TRUSTED_YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com', 'www.youtube-nocookie.com'])
+const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{6,}$/
 
 function loadYoutubeApi() {
   if (window.YT?.Player) return Promise.resolve(window.YT)
@@ -36,13 +38,17 @@ function getYoutubeVideoId(url) {
   if (!url) return ''
   try {
     const parsed = new URL(url)
-    if (parsed.hostname.includes('youtu.be')) {
-      return parsed.pathname.replace(/^\/+/, '').split('/')[0] || ''
+    const host = parsed.hostname.toLowerCase()
+    if (parsed.protocol !== 'https:' || !TRUSTED_YOUTUBE_HOSTS.has(host)) return ''
+    let videoId = ''
+    if (host === 'youtu.be' || host === 'www.youtu.be') {
+      videoId = parsed.pathname.replace(/^\/+/, '').split('/')[0] || ''
+    } else if (parsed.pathname.startsWith('/embed/')) {
+      videoId = parsed.pathname.split('/')[2] || ''
+    } else {
+      videoId = parsed.searchParams.get('v') || ''
     }
-    if (parsed.pathname.startsWith('/embed/')) {
-      return parsed.pathname.split('/')[2] || ''
-    }
-    return parsed.searchParams.get('v') || ''
+    return YOUTUBE_ID_PATTERN.test(videoId) ? videoId : ''
   } catch {
     return ''
   }
@@ -50,11 +56,10 @@ function getYoutubeVideoId(url) {
 
 function getYoutubeEmbedUrl(videoId, embedUrl = '') {
   if (!videoId && !embedUrl) return ''
+  const safeVideoId = YOUTUBE_ID_PATTERN.test(videoId || '') ? videoId : getYoutubeVideoId(embedUrl)
+  if (!safeVideoId) return ''
 
-  const embed = new URL(embedUrl || `https://www.youtube.com/embed/${videoId}`)
-  if (videoId && !embed.pathname.startsWith('/embed/')) {
-    embed.pathname = `/embed/${videoId}`
-  }
+  const embed = new URL(`https://www.youtube.com/embed/${safeVideoId}`)
   embed.searchParams.set('enablejsapi', '1')
   embed.searchParams.set('origin', window.location.origin)
   embed.searchParams.set('playsinline', '1')
@@ -186,7 +191,7 @@ export default function VideosPage() {
 
   return (
     <>
-      <PageHero eyebrow="ویدیوهای جزیره" title="تماشای نجوم و فضا" description="آخرین ویدیوهای عمومی کانال رسمی جزیره از طریق WordPress و YouTube Data API به‌صورت سروری همگام می‌شوند.">
+      <PageHero eyebrow="ویدیوهای جزیره" title="تماشای نجوم و فضا" description="آخرین ویدیوهای عمومی کانال رسمی جزیره از طریق WordPress و منبع رسمی یوتیوب به‌صورت سروری همگام می‌شوند.">
         <a href={youtube.url} target="_blank" rel="noopener noreferrer" className="youtube-cta"><Youtube className="h-5 w-5 fill-current" />کانال رسمی {youtube.handle}<ArrowUpLeft className="h-4 w-4" /></a>
       </PageHero>
 
@@ -213,6 +218,7 @@ export default function VideosPage() {
                     className="aspect-video w-full"
                     src={embedUrl}
                     title={active.title}
+                    loading="lazy"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"
                     allowFullScreen
