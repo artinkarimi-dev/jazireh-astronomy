@@ -1,9 +1,10 @@
-import { Camera, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, ExternalLink, Play } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import PageHero from '../components/PageHero'
 import usePageMeta from '../hooks/usePageMeta'
 import { api } from '../lib/api'
 import { getApodDisplay } from '../lib/apodLocalization'
+import { normalizeApodVideo } from '../lib/apodVideo'
 
 export default function ApodPage() {
   const initialItems = useMemo(() => [], [])
@@ -51,13 +52,7 @@ export default function ApodPage() {
           <div className="surface-card apod-panel p-3 sm:p-4">
             <div className="apod-image-frame relative">
               {isVideo ? (
-                <iframe
-                  src={item.sourceUrl}
-                  title={display.title}
-                  className="apod-media-frame"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
+                <ApodVideo item={item} display={display} />
               ) : (
                 <ApodImage item={item} display={display} />
               )}
@@ -88,6 +83,109 @@ export default function ApodPage() {
         </div>}
       </section>
     </>
+  )
+}
+
+function ApodVideo({ item, display }) {
+  const video = normalizeApodVideo(item)
+  const [activated, setActivated] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const title = display.title || item?.titleOriginal || 'NASA APOD video'
+  const canLoadMedia = activated && !failed && (video.canEmbed || video.canPlayInline)
+
+  useEffect(() => {
+    setActivated(false)
+    setFailed(false)
+  }, [item?.sourceUrl, item?.mediaUrl])
+
+  if (canLoadMedia && video.canEmbed) {
+    return (
+      <iframe
+        src={video.embedUrl}
+        title={title}
+        className="apod-media-frame"
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        allow="fullscreen; picture-in-picture"
+        allowFullScreen
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+
+  if (canLoadMedia && video.canPlayInline) {
+    return (
+      <video
+        className="apod-media-frame"
+        src={video.sourceUrl}
+        poster={video.posterUrl || undefined}
+        controls
+        playsInline
+        preload="metadata"
+        onError={() => setFailed(true)}
+      >
+        <a href={video.sourceUrl} target="_blank" rel="noopener noreferrer">مشاهده ویدیو در منبع اصلی</a>
+      </video>
+    )
+  }
+
+  return (
+    <div className="flex h-full min-h-[280px] items-center justify-center bg-black p-6 text-center">
+      {video.posterUrl ? (
+        <img
+          src={video.posterUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-50"
+          loading="lazy"
+          decoding="async"
+          onError={(event) => { event.currentTarget.style.display = 'none' }}
+        />
+      ) : null}
+      <div className="relative z-10 max-w-md">
+        <span className="eyebrow justify-center">ویدیو APOD</span>
+        <h3 className="mt-3 text-xl font-black leading-8 text-white">{title}</h3>
+        {video.canEmbed || video.canPlayInline ? (
+          <>
+            <button
+              type="button"
+              className="primary-btn mx-auto mt-5"
+              onClick={() => setActivated(true)}
+              aria-label={`پخش ویدیوی ${title}`}
+            >
+              <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+              پخش ویدیو
+            </button>
+            <p className="mt-4 text-xs leading-6 text-slate-500">برای حفظ کارایی صفحه، ویدیو پس از انتخاب شما بارگذاری می‌شود.</p>
+            {failed && video.sourceUrl ? (
+              <a
+                className="secondary-btn mx-auto mt-4"
+                href={video.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`مشاهده ویدیوی ${title} در منبع اصلی`}
+              >
+                مشاهده ویدیو در منبع اصلی
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : null}
+          </>
+        ) : video.sourceUrl ? (
+          <a
+            className="secondary-btn mx-auto mt-5"
+            href={video.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`مشاهده ویدیوی ${title} در منبع اصلی`}
+          >
+            مشاهده ویدیو در منبع اصلی
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
+        ) : (
+          <p className="mt-4 text-sm leading-7 text-slate-400">نشانی معتبر ویدیو برای این APOD در دسترس نیست.</p>
+        )}
+        {failed ? <p className="mt-4 text-xs leading-6 text-amber-100">بارگذاری ویدیو ممکن نبود؛ از پیوند منبع رسمی استفاده کنید.</p> : null}
+      </div>
+    </div>
   )
 }
 

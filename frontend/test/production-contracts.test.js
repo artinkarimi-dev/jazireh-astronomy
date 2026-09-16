@@ -7,6 +7,7 @@ const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
+const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
 test('public Phase 1 routes are registered in the React router', () => {
   for (const route of ['/', '/sky', '/explore', '/news', '/apod', '/videos', '/events', '/topics', '/radar', '/about', '/contact']) {
@@ -82,7 +83,7 @@ test('APOD stale or failed translations fall back to current NASA original', () 
 test('APOD image days use image rendering and not video embed markup', () => {
   assert.match(apodPageSource, /const isVideo = item\?\.mediaType === 'video' && item\.sourceUrl/)
   assert.match(apodPageSource, /isVideo \? \(/)
-  assert.match(apodPageSource, /<iframe/)
+  assert.match(apodPageSource, /<ApodVideo item=\{item\} display=\{display\} \/>/)
   assert.match(apodPageSource, /<ApodImage item=\{item\} display=\{display\} \/>/)
   assert.match(apodPageSource, /<img/)
   assert.match(apodPageSource, /alt=\{usingFallback \? 'تصویر APOD با وضعیت داده غیرتازه' : display\.title\}/)
@@ -97,4 +98,46 @@ test('contact page presents only approved public communication channels', () => 
   assert.match(contactPageSource, /target="_blank"/)
   assert.match(contactPageSource, /rel="noopener noreferrer"/)
   assert.doesNotMatch(contactPageSource, /Youtube|youtube|phone|address|WhatsApp|Twitter|X\/Twitter/)
+})
+
+test('APOD video URL normalization supports safe providers and trusted NASA files', () => {
+  const youtubeWatch = normalizeApodVideo({ sourceUrl: 'https://www.youtube.com/watch?v=abcDEF_1234' })
+  assert.equal(youtubeWatch.type, 'embed')
+  assert.equal(youtubeWatch.embedUrl, 'https://www.youtube-nocookie.com/embed/abcDEF_1234')
+  assert.equal(youtubeWatch.canEmbed, true)
+
+  const youtubeEmbed = normalizeApodVideo({ sourceUrl: 'https://www.youtube.com/embed/abcDEF_1234' })
+  assert.equal(youtubeEmbed.embedUrl, 'https://www.youtube-nocookie.com/embed/abcDEF_1234')
+
+  const vimeo = normalizeApodVideo({ sourceUrl: 'https://vimeo.com/123456789' })
+  assert.equal(vimeo.embedUrl, 'https://player.vimeo.com/video/123456789')
+
+  const nasaFile = normalizeApodVideo({ sourceUrl: 'https://apod.nasa.gov/apod/image/2609/NoctilucentNeowise_Girotti.mp4' })
+  assert.equal(nasaFile.type, 'file')
+  assert.equal(nasaFile.canPlayInline, true)
+  assert.equal(nasaFile.canEmbed, false)
+})
+
+test('APOD unsafe or unsupported video URLs never create embeds', () => {
+  for (const sourceUrl of [
+    'javascript:alert(1)',
+    'data:text/html,<h1>x</h1>',
+    'http://www.youtube.com/watch?v=abcDEF_1234',
+    'https://example.com/watch/video',
+    'not a url',
+    '',
+  ]) {
+    const video = normalizeApodVideo({ sourceUrl })
+    assert.equal(video.canEmbed, false)
+    assert.equal(video.canPlayInline, false)
+    assert.equal(video.embedUrl, '')
+  }
+})
+
+test('APOD video component is click-to-load and does not eagerly instantiate iframe', () => {
+  assert.match(apodPageSource, /const \[activated, setActivated\] = useState\(false\)/)
+  assert.match(apodPageSource, /const canLoadMedia = activated && !failed/)
+  assert.match(apodPageSource, /onClick=\{\(\) => setActivated\(true\)\}/)
+  assert.match(apodPageSource, /loading="lazy"/)
+  assert.doesNotMatch(apodPageSource, /dangerouslySetInnerHTML/)
 })
