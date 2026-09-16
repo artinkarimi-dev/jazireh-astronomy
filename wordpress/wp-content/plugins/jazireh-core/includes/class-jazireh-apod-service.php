@@ -289,6 +289,20 @@ final class Jazireh_APOD_Service
             'localizationWarning' => 'متن اصلی NASA به انگلیسی نمایش داده می‌شود؛ توضیح فارسی این تصویر هنوز آماده نشده است.',
             'photographer' => sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : 'NASA'),
             'sourceUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+            'mediaUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+            'hdUrl' => isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : '',
+            'thumbnailUrl' => isset($item['thumbnail_url']) ? esc_url_raw($item['thumbnail_url']) : '',
+            'serviceVersion' => sanitize_text_field(isset($item['service_version']) ? $item['service_version'] : ''),
+            'sourceHash' => class_exists('Jazireh_APOD_Editorial') ? Jazireh_APOD_Editorial::source_hash(array(
+                'date' => $date,
+                'titleOriginal' => $title,
+                'contentOriginal' => $content,
+                'mediaType' => $media_type,
+                'photographer' => sanitize_text_field(isset($item['copyright']) ? $item['copyright'] : 'NASA'),
+                'sourceUrl' => isset($item['url']) ? esc_url_raw($item['url']) : '',
+                'hdUrl' => isset($item['hdurl']) ? esc_url_raw($item['hdurl']) : '',
+                'serviceVersion' => sanitize_text_field(isset($item['service_version']) ? $item['service_version'] : ''),
+            )) : '',
         ));
     }
 
@@ -302,19 +316,26 @@ final class Jazireh_APOD_Service
         $item['titleOriginal'] = $title_original;
         $item['contentOriginal'] = $content_original;
         $item['excerptOriginal'] = $excerpt_original;
+        $item['sourceHash'] = class_exists('Jazireh_APOD_Editorial') ? Jazireh_APOD_Editorial::source_hash($item) : (string) ($item['sourceHash'] ?? '');
         $item['titleFa'] = '';
         $item['summaryFa'] = '';
         $item['contentFa'] = '';
         $item['translationStatus'] = 'missing';
+        $item['translationSourceHash'] = '';
+        $item['translatedAt'] = '';
+        $item['reviewedAt'] = '';
         $item['hasPersianEditorial'] = false;
         $item['localizationWarning'] = 'متن اصلی NASA به انگلیسی نمایش داده می‌شود؛ توضیح فارسی این تصویر هنوز آماده نشده است.';
 
-        $editorial = class_exists('Jazireh_APOD_Editorial') ? Jazireh_APOD_Editorial::get_ready_for_date($date) : null;
+        $editorial = class_exists('Jazireh_APOD_Editorial') ? Jazireh_APOD_Editorial::get_ready_for_date($date, $item['sourceHash']) : null;
         if (is_array($editorial) && (!empty($editorial['titleFa']) || !empty($editorial['summaryFa']) || !empty($editorial['contentFa']))) {
             $item['titleFa'] = $editorial['titleFa'];
             $item['summaryFa'] = $editorial['summaryFa'];
             $item['contentFa'] = $editorial['contentFa'];
             $item['translationStatus'] = sanitize_key((string) ($editorial['translationStatus'] ?? 'ready'));
+            $item['translationSourceHash'] = sanitize_text_field((string) ($editorial['translationSourceHash'] ?? ''));
+            $item['translatedAt'] = sanitize_text_field((string) ($editorial['translatedAt'] ?? ''));
+            $item['reviewedAt'] = sanitize_text_field((string) ($editorial['reviewedAt'] ?? ''));
             $item['hasPersianEditorial'] = true;
             $item['editorialId'] = (int) ($editorial['editorialId'] ?? 0);
             $item['localizationWarning'] = '';
@@ -334,6 +355,11 @@ final class Jazireh_APOD_Service
             $item['title'] = $title_original;
             $item['content'] = $content_original;
             $item['excerpt'] = $excerpt_original;
+            $stale = class_exists('Jazireh_APOD_Editorial') && Jazireh_APOD_Editorial::find_id_by_date($date);
+            if ($stale) {
+                $item['translationStatus'] = 'pending';
+                $item['localizationWarning'] = 'ترجمه فارسی برای نسخه تازه NASA در حال آماده‌سازی است؛ تا تکمیل ترجمه معتبر، متن اصلی NASA نمایش داده می‌شود.';
+            }
         }
 
         return $item;

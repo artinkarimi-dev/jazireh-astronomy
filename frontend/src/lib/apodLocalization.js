@@ -1,6 +1,9 @@
 export function getApodDisplay(item = {}) {
   item = item || {}
-  const hasPersianEditorial = Boolean(item.hasPersianEditorial && ['ready', 'auto_ready', 'manual_ready'].includes(item.translationStatus))
+  const currentHash = item.sourceHash || ''
+  const translationHash = item.translationSourceHash || ''
+  const hasCurrentHash = Boolean(currentHash && translationHash && currentHash === translationHash)
+  const hasPersianEditorial = Boolean(item.hasPersianEditorial && hasCurrentHash && ['ready', 'auto_ready', 'manual_ready'].includes(item.translationStatus))
   const isLocalFallback = Boolean(item.isFallback && item.source === 'frontend-fallback')
   const titleOriginal = item.titleOriginal || item.title || 'NASA APOD'
   const contentOriginal = item.contentOriginal || item.content || ''
@@ -19,6 +22,6 @@ export function getApodDisplay(item = {}) {
     excerptOriginal,
     warning: hasPersianEditorial || isLocalFallback
       ? ''
-      : (item.localizationWarning || 'متن اصلی NASA به انگلیسی نمایش داده می‌شود؛ توضیح فارسی این تصویر هنوز آماده نشده است.'),
+      : (item.localizationWarning || 'ترجمه فارسی معتبر برای نسخه فعلی NASA هنوز آماده نیست؛ متن اصلی NASA نمایش داده می‌شود.'),
   }
 }
