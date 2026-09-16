@@ -13,6 +13,10 @@ final class Jazireh_APOD_Editorial
     const META_CONTENT_FA = '_jazireh_apod_content_fa';
     const META_STATUS = '_jazireh_apod_translation_status';
     const META_SOURCE_ITEM = '_jazireh_apod_source_item';
+    const META_SOURCE_HASH = '_jazireh_apod_source_hash';
+    const META_TRANSLATION_SOURCE_HASH = '_jazireh_apod_translation_source_hash';
+    const META_TRANSLATED_AT = '_jazireh_apod_translated_at';
+    const META_REVIEWED_AT = '_jazireh_apod_reviewed_at';
     const META_ATTEMPTS = '_jazireh_apod_localizer_attempts';
     const META_LAST_ATTEMPT_AT = '_jazireh_apod_localizer_last_attempt_at';
     const META_LAST_SUCCESS_AT = '_jazireh_apod_localizer_last_success_at';
@@ -26,6 +30,7 @@ final class Jazireh_APOD_Editorial
     const STATUS_FAILED = 'failed';
     const STATUS_DRAFT = 'draft';
     const STATUS_READY = 'ready';
+    const STATUS_STALE = 'stale';
 
     public static function boot()
     {
@@ -82,6 +87,11 @@ final class Jazireh_APOD_Editorial
         $summary = get_post_meta($post->ID, self::META_SUMMARY_FA, true);
         $content = get_post_meta($post->ID, self::META_CONTENT_FA, true);
         $status = get_post_meta($post->ID, self::META_STATUS, true) ?: self::STATUS_DRAFT;
+        $source_item = get_post_meta($post->ID, self::META_SOURCE_ITEM, true);
+        $source_hash = get_post_meta($post->ID, self::META_SOURCE_HASH, true);
+        $translation_source_hash = get_post_meta($post->ID, self::META_TRANSLATION_SOURCE_HASH, true);
+        $translated_at = get_post_meta($post->ID, self::META_TRANSLATED_AT, true);
+        $reviewed_at = get_post_meta($post->ID, self::META_REVIEWED_AT, true);
         ?>
         <div class="jazireh-apod-editorial-fields" dir="rtl">
             <p>
@@ -109,8 +119,16 @@ final class Jazireh_APOD_Editorial
                     <option value="auto_ready" <?php selected($status, self::STATUS_AUTO_READY); ?>>ترجمه خودکار آماده است</option>
                     <option value="pending" <?php selected($status, self::STATUS_PENDING); ?>>در انتظار ترجمه خودکار</option>
                     <option value="failed" <?php selected($status, self::STATUS_FAILED); ?>>ترجمه خودکار انجام نشد</option>
+                    <option value="stale" <?php selected($status, self::STATUS_STALE); ?>>قدیمی؛ منبع ناسا تغییر کرده است</option>
                 </select>
             </p>
+            <div style="border:1px solid #dcdcde;border-radius:8px;padding:12px;background:#fff;margin:16px 0" dir="ltr">
+                <p><strong>NASA original title:</strong><br><?php echo esc_html(is_array($source_item) ? (string) ($source_item['titleOriginal'] ?? '') : ''); ?></p>
+                <p><strong>NASA original explanation:</strong><br><?php echo esc_html(is_array($source_item) ? (string) ($source_item['contentOriginal'] ?? '') : ''); ?></p>
+                <p><strong>Current source hash:</strong> <code><?php echo esc_html((string) $source_hash); ?></code></p>
+                <p><strong>Translation source hash:</strong> <code><?php echo esc_html((string) $translation_source_hash); ?></code></p>
+                <p><strong>Translated at:</strong> <?php echo esc_html((string) $translated_at ?: '-'); ?> | <strong>Reviewed at:</strong> <?php echo esc_html((string) $reviewed_at ?: '-'); ?></p>
+            </div>
             <?php if ($post->ID && class_exists('Jazireh_APOD_Localizer')) : ?>
                 <p>
                     <?php $url = wp_nonce_url(add_query_arg(array('action' => 'jazireh_regenerate_apod_translation', 'post_id' => $post->ID), admin_url('admin-post.php')), self::REGENERATE_ACTION); ?>
@@ -154,6 +172,13 @@ final class Jazireh_APOD_Editorial
         update_post_meta($post_id, self::META_SUMMARY_FA, sanitize_textarea_field(isset($_POST['jazireh_apod_summary_fa']) ? wp_unslash($_POST['jazireh_apod_summary_fa']) : ''));
         update_post_meta($post_id, self::META_CONTENT_FA, wp_kses_post(isset($_POST['jazireh_apod_content_fa']) ? wp_unslash($_POST['jazireh_apod_content_fa']) : ''));
         update_post_meta($post_id, self::META_STATUS, $status);
+        if ($date && in_array($status, array(self::STATUS_MANUAL_READY, self::STATUS_READY), true)) {
+            $source_hash = get_post_meta($post_id, self::META_SOURCE_HASH, true);
+            if ($source_hash) {
+                update_post_meta($post_id, self::META_TRANSLATION_SOURCE_HASH, sanitize_text_field((string) $source_hash));
+                update_post_meta($post_id, self::META_REVIEWED_AT, current_time(DATE_ATOM));
+            }
+        }
 
         if ($date && self::find_duplicate($date, $post_id)) {
             update_post_meta($post_id, self::META_STATUS, self::STATUS_DRAFT);
@@ -161,12 +186,13 @@ final class Jazireh_APOD_Editorial
         }
     }
 
-    public static function get_ready_for_date($date)
+    public static function get_ready_for_date($date, $source_hash = '')
     {
         $date = self::sanitize_date($date);
         if (!$date) {
             return null;
         }
+        $source_hash = self::sanitize_hash($source_hash);
 
         $posts = get_posts(array(
             'post_type' => self::POST_TYPE,
@@ -187,18 +213,28 @@ final class Jazireh_APOD_Editorial
         }
 
         $post_id = (int) $posts[0]->ID;
+        $translation_hash = self::sanitize_hash(get_post_meta($post_id, self::META_TRANSLATION_SOURCE_HASH, true));
+        $current_source_hash = self::sanitize_hash(get_post_meta($post_id, self::META_SOURCE_HASH, true));
+        if ($source_hash && $translation_hash !== $source_hash) {
+            self::mark_stale($post_id, $source_hash);
+            return null;
+        }
         return array(
             'titleFa' => self::clean_text(get_post_meta($post_id, self::META_TITLE_FA, true)),
             'summaryFa' => self::clean_text(get_post_meta($post_id, self::META_SUMMARY_FA, true)),
             'contentFa' => wp_kses_post(get_post_meta($post_id, self::META_CONTENT_FA, true)),
             'translationStatus' => get_post_meta($post_id, self::META_STATUS, true) ?: self::STATUS_READY,
+            'translationSourceHash' => $translation_hash,
+            'sourceHash' => $source_hash ?: $current_source_hash,
+            'translatedAt' => get_post_meta($post_id, self::META_TRANSLATED_AT, true) ?: get_post_meta($post_id, self::META_LAST_SUCCESS_AT, true),
+            'reviewedAt' => get_post_meta($post_id, self::META_REVIEWED_AT, true) ?: '',
             'editorialId' => $post_id,
         );
     }
 
-    public static function has_usable_for_date($date)
+    public static function has_usable_for_date($date, $source_hash = '')
     {
-        return (bool) self::get_ready_for_date($date);
+        return (bool) self::get_ready_for_date($date, $source_hash);
     }
 
     public static function find_id_by_date($date)
@@ -226,13 +262,21 @@ final class Jazireh_APOD_Editorial
             return 0;
         }
         self::remember_source_item($item);
+        $source_hash = self::source_hash($item);
         $post_id = self::find_id_by_date($date);
         if ($post_id) {
             $status = get_post_meta($post_id, self::META_STATUS, true);
-            if (in_array($status, array(self::STATUS_READY, self::STATUS_AUTO_READY, self::STATUS_MANUAL_READY), true)) {
+            $translation_hash = self::sanitize_hash(get_post_meta($post_id, self::META_TRANSLATION_SOURCE_HASH, true));
+            update_post_meta($post_id, self::META_SOURCE_HASH, $source_hash);
+            if (in_array($status, array(self::STATUS_READY, self::STATUS_AUTO_READY, self::STATUS_MANUAL_READY), true) && $translation_hash === $source_hash) {
                 return $post_id;
             }
+            if (in_array($status, array(self::STATUS_READY, self::STATUS_AUTO_READY, self::STATUS_MANUAL_READY), true) && $translation_hash !== $source_hash) {
+                self::mark_stale($post_id, $source_hash);
+            }
             if (!$status) {
+                update_post_meta($post_id, self::META_STATUS, self::STATUS_PENDING);
+            } elseif ($status === self::STATUS_STALE) {
                 update_post_meta($post_id, self::META_STATUS, self::STATUS_PENDING);
             }
             return $post_id;
@@ -250,6 +294,7 @@ final class Jazireh_APOD_Editorial
         update_post_meta($post_id, self::META_DATE, $date);
         update_post_meta($post_id, self::META_STATUS, self::STATUS_PENDING);
         update_post_meta($post_id, self::META_SOURCE_ITEM, self::sanitize_source_item($item));
+        update_post_meta($post_id, self::META_SOURCE_HASH, $source_hash);
         return (int) $post_id;
     }
 
@@ -263,6 +308,12 @@ final class Jazireh_APOD_Editorial
         $post_id = self::find_id_by_date($date);
         if ($post_id) {
             update_post_meta($post_id, self::META_SOURCE_ITEM, self::sanitize_source_item($item));
+            $new_hash = self::source_hash($item);
+            $old_hash = self::sanitize_hash(get_post_meta($post_id, self::META_SOURCE_HASH, true));
+            update_post_meta($post_id, self::META_SOURCE_HASH, $new_hash);
+            if ($old_hash && $old_hash !== $new_hash) {
+                self::mark_stale($post_id, $new_hash);
+            }
         }
     }
 
@@ -295,13 +346,16 @@ final class Jazireh_APOD_Editorial
     {
         $post_id = (int) $post_id;
         $current = get_post_meta($post_id, self::META_STATUS, true);
-        if ($current === self::STATUS_MANUAL_READY) {
+        $source_hash = self::sanitize_hash((string) ($fields['sourceHash'] ?? get_post_meta($post_id, self::META_SOURCE_HASH, true)));
+        if ($current === self::STATUS_MANUAL_READY && self::sanitize_hash(get_post_meta($post_id, self::META_TRANSLATION_SOURCE_HASH, true)) === $source_hash) {
             return false;
         }
         update_post_meta($post_id, self::META_TITLE_FA, sanitize_text_field($fields['titleFa'] ?? ''));
         update_post_meta($post_id, self::META_SUMMARY_FA, sanitize_textarea_field($fields['summaryFa'] ?? ''));
         update_post_meta($post_id, self::META_CONTENT_FA, sanitize_textarea_field($fields['contentFa'] ?? ''));
         update_post_meta($post_id, self::META_STATUS, self::STATUS_AUTO_READY);
+        update_post_meta($post_id, self::META_TRANSLATION_SOURCE_HASH, $source_hash);
+        update_post_meta($post_id, self::META_TRANSLATED_AT, current_time(DATE_ATOM));
         update_post_meta($post_id, self::META_LAST_SUCCESS_AT, current_time(DATE_ATOM));
         update_post_meta($post_id, self::META_LAST_ERROR, '');
         return true;
@@ -416,7 +470,7 @@ final class Jazireh_APOD_Editorial
 
     private static function statuses()
     {
-        return array(self::STATUS_DRAFT, self::STATUS_PENDING, self::STATUS_AUTO_READY, self::STATUS_MANUAL_READY, self::STATUS_FAILED, self::STATUS_READY);
+        return array(self::STATUS_DRAFT, self::STATUS_PENDING, self::STATUS_AUTO_READY, self::STATUS_MANUAL_READY, self::STATUS_FAILED, self::STATUS_READY, self::STATUS_STALE);
     }
 
     private static function status_badge($status)
@@ -428,6 +482,7 @@ final class Jazireh_APOD_Editorial
             self::STATUS_AUTO_READY => 'ترجمه خودکار آماده است',
             self::STATUS_MANUAL_READY => 'ویرایش دستی شده',
             self::STATUS_FAILED => 'ترجمه خودکار انجام نشد',
+            self::STATUS_STALE => 'قدیمی؛ منبع ناسا تغییر کرده است',
             self::STATUS_READY => 'آماده انتشار',
         );
         $classes = array(
@@ -435,6 +490,7 @@ final class Jazireh_APOD_Editorial
             self::STATUS_MANUAL_READY => 'background:#dcfce7;color:#166534',
             self::STATUS_PENDING => 'background:#fef3c7;color:#92400e',
             self::STATUS_FAILED => 'background:#fee2e2;color:#991b1b',
+            self::STATUS_STALE => 'background:#ffedd5;color:#9a3412',
             self::STATUS_DRAFT => 'background:#e2e8f0;color:#475569',
             self::STATUS_READY => 'background:#dcfce7;color:#166534',
         );
@@ -456,7 +512,40 @@ final class Jazireh_APOD_Editorial
             'mediaType' => sanitize_key((string) ($item['mediaType'] ?? 'image')),
             'photographer' => sanitize_text_field((string) ($item['photographer'] ?? 'NASA')),
             'sourceUrl' => esc_url_raw((string) ($item['sourceUrl'] ?? '')),
+            'mediaUrl' => esc_url_raw((string) ($item['mediaUrl'] ?? ($item['sourceUrl'] ?? ''))),
+            'hdUrl' => esc_url_raw((string) ($item['hdUrl'] ?? '')),
+            'thumbnailUrl' => esc_url_raw((string) ($item['thumbnailUrl'] ?? '')),
+            'serviceVersion' => sanitize_text_field((string) ($item['serviceVersion'] ?? '')),
+            'sourceHash' => self::source_hash($item),
         );
+    }
+
+    public static function source_hash(array $item)
+    {
+        $source = array(
+            'date' => self::sanitize_date($item['date'] ?? ''),
+            'titleOriginal' => self::normalize_for_hash(($item['titleOriginal'] ?? '') ?: ($item['title'] ?? '')),
+            'contentOriginal' => self::normalize_for_hash(($item['contentOriginal'] ?? '') ?: ($item['content'] ?? '')),
+            'mediaType' => sanitize_key((string) ($item['mediaType'] ?? 'image')),
+            'photographer' => self::normalize_for_hash($item['photographer'] ?? ''),
+            'sourceUrl' => esc_url_raw((string) ($item['sourceUrl'] ?? '')),
+            'hdUrl' => esc_url_raw((string) ($item['hdUrl'] ?? '')),
+            'serviceVersion' => sanitize_text_field((string) ($item['serviceVersion'] ?? '')),
+        );
+        return hash('sha256', wp_json_encode($source, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function mark_stale($post_id, $new_source_hash = '')
+    {
+        $post_id = (int) $post_id;
+        if (!$post_id) {
+            return false;
+        }
+        if ($new_source_hash) {
+            update_post_meta($post_id, self::META_SOURCE_HASH, self::sanitize_hash($new_source_hash));
+        }
+        update_post_meta($post_id, self::META_STATUS, self::STATUS_STALE);
+        return true;
     }
 
     private static function sanitize_date($date)
@@ -468,5 +557,18 @@ final class Jazireh_APOD_Editorial
     private static function clean_text($value)
     {
         return html_entity_decode(wp_strip_all_tags((string) $value), ENT_QUOTES, 'UTF-8');
+    }
+
+    private static function normalize_for_hash($value)
+    {
+        $value = html_entity_decode(wp_strip_all_tags((string) $value), ENT_QUOTES, 'UTF-8');
+        $value = preg_replace('/\s+/u', ' ', trim($value));
+        return $value === null ? '' : $value;
+    }
+
+    private static function sanitize_hash($hash)
+    {
+        $hash = strtolower(sanitize_text_field((string) $hash));
+        return preg_match('/^[a-f0-9]{64}$/', $hash) ? $hash : '';
     }
 }

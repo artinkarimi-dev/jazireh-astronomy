@@ -29,8 +29,9 @@ final class Jazireh_APOD_Localizer
         }
 
         Jazireh_APOD_Editorial::remember_source_item($item);
+        $source_hash = Jazireh_APOD_Editorial::source_hash($item);
 
-        if (Jazireh_APOD_Editorial::has_usable_for_date($date) || !Jazireh_APOD_Editorial::is_retry_allowed($date, self::RETRY_AFTER)) {
+        if (Jazireh_APOD_Editorial::has_usable_for_date($date, $source_hash) || !Jazireh_APOD_Editorial::is_retry_allowed($date, self::RETRY_AFTER)) {
             return;
         }
 
@@ -54,7 +55,9 @@ final class Jazireh_APOD_Localizer
             return false;
         }
         wp_clear_scheduled_hook(self::CRON_HOOK, array($date));
-        if (Jazireh_APOD_Editorial::has_usable_for_date($date)) {
+        $item = Jazireh_APOD_Editorial::source_item_for_date($date);
+        $source_hash = $item ? Jazireh_APOD_Editorial::source_hash($item) : '';
+        if ($source_hash && Jazireh_APOD_Editorial::has_usable_for_date($date, $source_hash)) {
             self::record_monitor($date, 'ready', '');
             return true;
         }
@@ -63,7 +66,6 @@ final class Jazireh_APOD_Localizer
         }
 
         set_transient(self::LOCK_PREFIX . $date, 1, 15 * MINUTE_IN_SECONDS);
-        $item = Jazireh_APOD_Editorial::source_item_for_date($date);
         if (!$item) {
             self::record_failure($date, 'source_unavailable');
             delete_transient(self::LOCK_PREFIX . $date);
@@ -211,7 +213,7 @@ final class Jazireh_APOD_Localizer
             return $filtered;
         }
         if (is_array($filtered)) {
-            return self::validate_result($filtered);
+            return self::validate_result_for_payload($filtered, $payload);
         }
 
         $key = self::provider_key();
@@ -258,7 +260,7 @@ final class Jazireh_APOD_Localizer
             return new WP_Error('invalid_structured_output', 'Localization provider returned invalid structured data.');
         }
 
-        return self::validate_result($decoded);
+        return self::validate_result_for_payload($decoded, $payload);
     }
 
     private static function build_payload(array $item)
@@ -267,8 +269,12 @@ final class Jazireh_APOD_Localizer
             'date' => sanitize_text_field((string) ($item['date'] ?? '')),
             'titleOriginal' => sanitize_text_field((string) (($item['titleOriginal'] ?? '') ?: ($item['title'] ?? ''))),
             'contentOriginal' => wp_strip_all_tags((string) (($item['contentOriginal'] ?? '') ?: ($item['content'] ?? ''))),
+            'mediaType' => sanitize_key((string) ($item['mediaType'] ?? 'image')),
             'photographer' => sanitize_text_field((string) ($item['photographer'] ?? 'NASA')),
             'sourceUrl' => esc_url_raw((string) ($item['sourceUrl'] ?? '')),
+            'hdUrl' => esc_url_raw((string) ($item['hdUrl'] ?? '')),
+            'serviceVersion' => sanitize_text_field((string) ($item['serviceVersion'] ?? '')),
+            'sourceHash' => class_exists('Jazireh_APOD_Editorial') ? Jazireh_APOD_Editorial::source_hash($item) : '',
         );
     }
 
@@ -281,7 +287,7 @@ final class Jazireh_APOD_Localizer
                     'role' => 'developer',
                     'content' => array(array(
                         'type' => 'input_text',
-                        'text' => 'You localize NASA APOD into natural Persian for a professional astronomy portal. Preserve scientific meaning, numbers, names, attribution, and uncertainty. Do not invent facts. Return only valid JSON matching the requested schema.',
+                        'text' => 'You translate official NASA Astronomy Picture of the Day scientific content into professional Persian. Rules: translate faithfully; do not add facts; do not remove important scientific qualifications; preserve uncertainty words such as may, might, likely, possible, estimated; preserve all numbers, scientific units, dates, proper names, object identifiers, telescope/instrument names, URLs, source credit, and the exact sourceHash; do not sensationalize; do not add promotional language; write fluent natural Persian for a general scientific audience; return structured JSON only.',
                     )),
                 ),
                 array(
@@ -300,11 +306,13 @@ final class Jazireh_APOD_Localizer
                     'schema' => array(
                         'type' => 'object',
                         'additionalProperties' => false,
-                        'required' => array('titleFa', 'summaryFa', 'contentFa'),
+                        'required' => array('titleFa', 'summaryFa', 'contentFa', 'translationNotes', 'sourceHash'),
                         'properties' => array(
                             'titleFa' => array('type' => 'string'),
                             'summaryFa' => array('type' => 'string'),
                             'contentFa' => array('type' => 'string'),
+                            'translationNotes' => array('type' => 'array', 'items' => array('type' => 'string')),
+                            'sourceHash' => array('type' => 'string'),
                         ),
                     ),
                 ),
@@ -317,14 +325,18 @@ final class Jazireh_APOD_Localizer
         $title = sanitize_text_field((string) ($result['titleFa'] ?? ''));
         $summary = sanitize_textarea_field((string) ($result['summaryFa'] ?? ''));
         $content = sanitize_textarea_field((string) ($result['contentFa'] ?? ''));
+        $source_hash = sanitize_text_field((string) ($result['sourceHash'] ?? ''));
 
         if (!$title || !$summary || !$content) {
             return new WP_Error('invalid_structured_output', 'Localization result is incomplete.');
         }
+        if (!preg_match('/^[a-f0-9]{64}$/', strtolower($source_hash))) {
+            return new WP_Error('invalid_structured_output', 'Localization result does not include a valid source hash.');
+        }
         if (!self::contains_persian($title . ' ' . $summary . ' ' . $content)) {
             return new WP_Error('invalid_persian_output', 'Localization result does not contain Persian text.');
         }
-        if (strlen($title) > 260 || strlen($summary) > 1600 || strlen($content) > 12000) {
+        if (strlen($title) > 260 || strlen($summary) > 1600 || strlen($content) < 120 || strlen($content) > 12000) {
             return new WP_Error('invalid_structured_output', 'Localization result length is outside the accepted range.');
         }
 
@@ -332,7 +344,22 @@ final class Jazireh_APOD_Localizer
             'titleFa' => $title,
             'summaryFa' => $summary,
             'contentFa' => $content,
+            'sourceHash' => strtolower($source_hash),
+            'translationNotes' => array_values(array_filter(array_map('sanitize_text_field', is_array($result['translationNotes'] ?? null) ? $result['translationNotes'] : array()))),
         );
+    }
+
+    private static function validate_result_for_payload(array $result, array $payload)
+    {
+        $validated = self::validate_result($result);
+        if (is_wp_error($validated)) {
+            return $validated;
+        }
+        $expected_hash = strtolower((string) ($payload['sourceHash'] ?? ''));
+        if (!$expected_hash || $validated['sourceHash'] !== $expected_hash) {
+            return new WP_Error('invalid_structured_output', 'Localization result source hash does not match current NASA source.');
+        }
+        return $validated;
     }
 
     private static function extract_openai_text(array $body)

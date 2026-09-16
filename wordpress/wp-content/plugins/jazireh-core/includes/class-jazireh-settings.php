@@ -131,7 +131,7 @@ final class Jazireh_Settings
                 'apod_auto_localization' => class_exists('Jazireh_APOD_Localizer') && !empty(Jazireh_APOD_Localizer::provider_health()['configured']) ? '1' : '0',
             ),
             'contact' => array(
-                'email' => '',
+                'email' => 'SNazarieh@Hotmail.com',
                 'phone' => '',
                 'address' => '',
             ),
