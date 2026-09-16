@@ -45,9 +45,14 @@ export default function NewsPage() {
         <div className="mb-5 text-xs text-slate-600">{filtered.length} خبر</div>
 
         {filtered.length ? <div className="news-grid">{filtered.map((item, index) => (
-          <article key={item.id} className="surface-card news-card accent-orange p-5 sm:p-6">
+          <article key={item.id} className="surface-card news-card news-editorial-card accent-orange">
+            {item.image ? (
+              <Link to={`/news/${item.slug}`} className="news-card-media" aria-label={item.title}>
+                <img src={item.image} alt={item.imageAlt || item.title} loading={index < 2 ? 'eager' : 'lazy'} />
+              </Link>
+            ) : null}
             <div className="flex items-start justify-between gap-3"><span className="event-category bg-orange-400/10 text-orange-200">{item.category}</span><span className="shrink-0 text-4xl font-black text-white/[.035] sm:text-5xl">{String(index + 1).padStart(2, '0')}</span></div>
-            <h2 className="mt-5 text-xl font-black leading-8 text-white">{item.title}</h2>
+            <h2 className="mt-5 text-xl font-black leading-8 text-white"><Link to={`/news/${item.slug}`}>{item.title}</Link></h2>
             <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-400">{item.excerpt}</p>
             <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-white/[.07] pt-4 text-xs leading-6 text-slate-500"><span className="flex min-w-0 items-center gap-1"><Clock3 className="h-3.5 w-3.5 shrink-0" />{item.readingTime || '۵ دقیقه'}</span>{item.sourceName || item.author ? <span className="truncate">{item.sourceName || item.author}</span> : null}<span className="state-pill">{formatDate(item.publishedAt)}</span><Link to={`/news/${item.slug}`} className="flex items-center gap-1 text-amber-200">ادامه <ArrowLeft className="h-3.5 w-3.5" /></Link></div>
           </article>

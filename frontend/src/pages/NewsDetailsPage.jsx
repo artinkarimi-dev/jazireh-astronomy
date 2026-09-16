@@ -36,6 +36,12 @@ export default function NewsDetailsPage() {
           <span className="eyebrow mt-8">{item.category}</span>
           <h1 className="article-title mt-4 font-black text-white">{item.title}</h1>
           <p className="article-lead mt-6 font-medium text-slate-200">{item.excerpt}</p>
+          {item.image ? (
+            <figure className="news-detail-figure mt-8">
+              <img src={item.image} alt={item.imageAlt || item.title} />
+              {item.imageCredit ? <figcaption>اعتبار تصویر: {item.imageCredit}</figcaption> : null}
+            </figure>
+          ) : null}
           <div className="article-content mt-8 border-t border-white/[.07] pt-7 text-base leading-9 text-slate-400" dangerouslySetInnerHTML={{ __html: item.content?.includes('<') ? item.content : String(item.content || '').replace(/\n/g, '<br>') }} />
         </div>
         <aside className="detail-aside">
@@ -52,6 +58,7 @@ export default function NewsDetailsPage() {
                 {item.sourceUrl ? <ExternalLink className="h-4 w-4 shrink-0" /> : null}
               </a>
             ) : null}
+            {item.imageCredit ? <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.025] px-4 py-3 text-xs leading-6 text-slate-500">اعتبار تصویر: {item.imageCredit}</div> : null}
             <button onClick={share} className="secondary-btn mt-5 w-full">{copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}{copied ? 'لینک کپی شد' : 'اشتراک‌گذاری'}</button>
           </div>
           <div className="surface-card p-5 text-sm leading-8 text-slate-400">برای ارزیابی خبرهای علمی باید میان داده مشاهده‌شده، مدل پژوهشی و نتیجه‌گیری احتمالی تفاوت گذاشت و به منبع اصلی مراجعه کرد.</div>

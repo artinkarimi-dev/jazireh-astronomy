@@ -13,6 +13,7 @@ final class Jazireh_News
     const META_SOURCE_NAME = '_jazireh_source_name';
     const META_SOURCE_URL = '_jazireh_source_url';
     const META_TRANSLATOR = '_jazireh_translator';
+    const META_IMAGE_CREDIT = '_jazireh_image_credit';
 
     public static function boot()
     {
@@ -86,6 +87,7 @@ final class Jazireh_News
         $source_name = get_post_meta($post->ID, self::META_SOURCE_NAME, true);
         $source_url = get_post_meta($post->ID, self::META_SOURCE_URL, true);
         $translator = get_post_meta($post->ID, self::META_TRANSLATOR, true);
+        $image_credit = get_post_meta($post->ID, self::META_IMAGE_CREDIT, true);
         if ($reading_time === '') {
             $reading_time = '۵ دقیقه';
         }
@@ -113,6 +115,10 @@ final class Jazireh_News
             <label for="jazireh_translator"><strong>مترجم / تنظیم‌کننده</strong></label>
             <input type="text" id="jazireh_translator" name="jazireh_translator" value="<?php echo esc_attr($translator); ?>" class="widefat" placeholder="نام شخص یا تیم">
         </p>
+        <p>
+            <label for="jazireh_image_credit"><strong>اعتبار تصویر</strong></label>
+            <textarea id="jazireh_image_credit" name="jazireh_image_credit" class="widefat" rows="3" placeholder="مثلاً Image: NASA / ESA / ..."><?php echo esc_textarea($image_credit); ?></textarea>
+        </p>
         <p style="color:#646970;line-height:1.8">عنوان، خلاصه، متن کامل و تصویر شاخص را از بخش‌های اصلی همین صفحه وارد کنید.</p>
         <?php
     }
@@ -136,9 +142,11 @@ final class Jazireh_News
         $source_name = isset($_POST['jazireh_source_name']) ? sanitize_text_field(wp_unslash($_POST['jazireh_source_name'])) : '';
         $source_url = isset($_POST['jazireh_source_url']) ? esc_url_raw(wp_unslash($_POST['jazireh_source_url'])) : '';
         $translator = isset($_POST['jazireh_translator']) ? sanitize_text_field(wp_unslash($_POST['jazireh_translator'])) : '';
+        $image_credit = isset($_POST['jazireh_image_credit']) ? sanitize_textarea_field(wp_unslash($_POST['jazireh_image_credit'])) : '';
         update_post_meta($post_id, self::META_SOURCE_NAME, $source_name);
         update_post_meta($post_id, self::META_SOURCE_URL, $source_url);
         update_post_meta($post_id, self::META_TRANSLATOR, $translator);
+        update_post_meta($post_id, self::META_IMAGE_CREDIT, $image_credit);
     }
 
     public static function columns($columns)

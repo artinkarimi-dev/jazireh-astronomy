@@ -420,6 +420,7 @@ final class Jazireh_REST
         $terms = wp_get_post_terms($post->ID, Jazireh_News::TAXONOMY);
         $category = !is_wp_error($terms) && !empty($terms) ? $terms[0]->name : 'نجوم';
         $image = get_the_post_thumbnail_url($post->ID, 'large');
+        $thumbnail_id = get_post_thumbnail_id($post->ID);
         $author_id = (int) $post->post_author;
         $author_name = $author_id ? get_the_author_meta('display_name', $author_id) : '';
         return array(
@@ -429,6 +430,8 @@ final class Jazireh_REST
             'excerpt' => wp_strip_all_tags($post->post_excerpt ?: wp_trim_words($post->post_content, 32, '…')),
             'content' => wp_kses_post(apply_filters('the_content', $post->post_content)),
             'image' => $image ?: '',
+            'imageAlt' => $thumbnail_id ? get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true) : '',
+            'imageCredit' => get_post_meta($post->ID, Jazireh_News::META_IMAGE_CREDIT, true) ?: '',
             'category' => $category,
             'readingTime' => get_post_meta($post->ID, Jazireh_News::META_READING_TIME, true) ?: '۵ دقیقه',
             'featured' => get_post_meta($post->ID, Jazireh_News::META_FEATURED, true) === '1',
