@@ -2,8 +2,6 @@ import { AlertTriangle, ExternalLink, RefreshCw, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { sunData } from '../../data/fallback'
 
-const SDO_FALLBACK_IMAGE = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg'
-
 const statusCopy = {
   ready: 'آماده',
   stale: 'آخرین داده موجود',
@@ -16,7 +14,6 @@ export default function SunPreview({ data = sunData, loading = false, className 
   const imageCandidates = [
     data?.image,
     data?.fallbackImage,
-    SDO_FALLBACK_IMAGE,
   ].filter(Boolean)
   const [imageIndex, setImageIndex] = useState(0)
   const image = imageCandidates[imageIndex] || ''

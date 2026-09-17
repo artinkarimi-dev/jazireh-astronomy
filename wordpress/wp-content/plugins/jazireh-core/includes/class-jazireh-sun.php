@@ -11,6 +11,11 @@ class Jazireh_Sun
 
     public static function latest()
     {
+        return Jazireh_Sun_Service::compatibility_payload();
+    }
+
+    public static function legacy_latest()
+    {
         $cached = get_transient(self::CACHE_KEY);
         if (is_array($cached)) {
             return self::with_metadata($cached);

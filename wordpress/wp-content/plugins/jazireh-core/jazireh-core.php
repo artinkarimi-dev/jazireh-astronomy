@@ -56,6 +56,7 @@ function jazireh_core_boot()
     Jazireh_APOD_Editorial::boot();
     Jazireh_APOD_Localizer::boot();
     Jazireh_APOD_Service::boot();
+    Jazireh_Sun_Service::boot();
     Jazireh_Settings::boot();
     Jazireh_REST::boot();
     Jazireh_Admin::boot();
@@ -72,6 +73,7 @@ function jazireh_core_activate()
     Jazireh_APOD_Editorial::register_content_type();
     Jazireh_News::seed_content();
     Jazireh_Newsletter::maybe_upgrade_schema();
+    Jazireh_Sun_Service::maybe_schedule_refresh();
     Jazireh_Settings::schedule_widget_prewarm();
     Jazireh_YouTube::maybe_schedule_refresh();
     flush_rewrite_rules();
@@ -81,6 +83,7 @@ register_activation_hook(__FILE__, 'jazireh_core_activate');
 function jazireh_core_deactivate()
 {
     Jazireh_Settings::clear_widget_prewarm();
+    Jazireh_Sun_Service::clear_schedule();
     Jazireh_YouTube::clear_schedule();
     flush_rewrite_rules();
 }

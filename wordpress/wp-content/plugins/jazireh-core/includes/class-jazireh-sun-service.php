@@ -7,11 +7,42 @@ if (!defined('ABSPATH')) {
 final class Jazireh_Sun_Service
 {
     const WIDGET_KEY = 'sun';
+    const REFRESH_HOOK = 'jazireh_refresh_sun_now';
     const CACHE_TTL = 1800;
     const HELIOVIEWER_API_BASE = 'https://api.helioviewer.org/v2';
     const HELIOVIEWER_SITE = 'https://helioviewer.org/';
     const SDO_SITE = 'https://sdo.gsfc.nasa.gov/data/';
     const SDO_LATEST_304 = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg';
+
+    public static function boot()
+    {
+        add_filter('cron_schedules', array(__CLASS__, 'cron_schedules'));
+        add_action(self::REFRESH_HOOK, array(__CLASS__, 'refresh'));
+        add_action('init', array(__CLASS__, 'maybe_schedule_refresh'));
+    }
+
+    public static function cron_schedules($schedules)
+    {
+        if (!isset($schedules['jazireh_every_30_minutes'])) {
+            $schedules['jazireh_every_30_minutes'] = array(
+                'interval' => 30 * MINUTE_IN_SECONDS,
+                'display' => __('Every 30 minutes', 'jazireh-core'),
+            );
+        }
+        return $schedules;
+    }
+
+    public static function maybe_schedule_refresh()
+    {
+        if (!wp_next_scheduled(self::REFRESH_HOOK)) {
+            wp_schedule_event(time() + 7 * MINUTE_IN_SECONDS, 'jazireh_every_30_minutes', self::REFRESH_HOOK);
+        }
+    }
+
+    public static function clear_schedule()
+    {
+        wp_clear_scheduled_hook(self::REFRESH_HOOK);
+    }
 
     public static function widget($args = array())
     {
@@ -30,24 +61,34 @@ final class Jazireh_Sun_Service
 
         $payload = self::fetch_latest_payload();
         if (is_wp_error($payload)) {
-            $payload = self::fallback_payload($payload->get_error_message());
-            $response = Jazireh_Widgets::stale(self::WIDGET_KEY, $payload, array(
+            $last_good = Jazireh_Widgets::last_good_as_stale(self::WIDGET_KEY, 'Fresh solar imagery is unavailable; last known good result returned.');
+            if (is_array($last_good)) {
+                Jazireh_Widgets::set_cached(self::WIDGET_KEY, $last_good, self::CACHE_TTL);
+                return $last_good;
+            }
+
+            $payload = self::unavailable_payload($payload->get_error_message());
+            $response = Jazireh_Widgets::response(self::WIDGET_KEY, Jazireh_Widgets::STATE_ERROR, $payload, array(
                 'updatedAt' => current_time('timestamp', true),
                 'expiresAt' => current_time('timestamp', true) + self::CACHE_TTL,
-                'source' => $payload['source'],
-                'sourceUrl' => $payload['sourceUrl'],
-                'message' => $payload['message'],
+                'source' => 'Sun data unavailable',
+                'sourceUrl' => '',
+                'message' => 'Fresh solar imagery is unavailable and no valid cached image exists.',
             ));
             return Jazireh_Widgets::set_cached(self::WIDGET_KEY, $response, self::CACHE_TTL);
         }
 
         $now = current_time('timestamp', true);
-        $response = Jazireh_Widgets::ready(self::WIDGET_KEY, $payload, array(
+        $args = array(
             'updatedAt' => $now,
             'expiresAt' => $now + self::CACHE_TTL,
             'source' => $payload['source'],
             'sourceUrl' => $payload['sourceUrl'],
-        ));
+            'message' => !empty($payload['message']) ? $payload['message'] : '',
+        );
+        $response = !empty($payload['isFallback'])
+            ? Jazireh_Widgets::stale(self::WIDGET_KEY, $payload, $args)
+            : Jazireh_Widgets::ready(self::WIDGET_KEY, $payload, $args);
 
         return Jazireh_Widgets::set_cached(self::WIDGET_KEY, $response, self::CACHE_TTL);
     }
@@ -100,30 +141,54 @@ final class Jazireh_Sun_Service
     private static function fetch_latest_payload()
     {
         $date = gmdate('Y-m-d\TH:i:s\Z', current_time('timestamp', true));
-        $source = self::sources()[0];
-        $metadata = self::closest_image($source, $date);
-        if (is_wp_error($metadata)) {
-            return $metadata;
+        $errors = array();
+
+        foreach (self::sources() as $source) {
+            $metadata = self::closest_image($source, $date);
+            if (is_wp_error($metadata)) {
+                $errors[] = $metadata->get_error_message();
+                continue;
+            }
+
+            $observed_at = self::observed_at($metadata);
+            if (!$observed_at) {
+                $errors[] = 'Helioviewer did not return an observation timestamp.';
+                continue;
+            }
+
+            $image = self::screenshot_url($source, $observed_at);
+            if (!self::remote_image_is_available($image)) {
+                $errors[] = 'Helioviewer returned a non-image or unavailable screenshot.';
+                continue;
+            }
+
+            return array(
+                'status' => 'ready',
+                'title' => 'خورشید اکنون',
+                'image' => $image,
+                'fallbackImage' => self::SDO_LATEST_304,
+                'observedAt' => $observed_at,
+                'wavelength' => $source['wavelength'],
+                'source' => $source['label'],
+                'sourceUrl' => self::HELIOVIEWER_SITE,
+                'provider' => 'Helioviewer',
+                'sourceId' => $source['sourceId'],
+                'observatory' => $source['observatory'],
+                'instrument' => $source['instrument'],
+                'measurement' => $source['measurement'],
+                'isFallback' => false,
+                'fallbackReason' => '',
+                'displayWarning' => '',
+                'message' => 'تصویر نزدیک به زمان واقعی از داده‌های معتبر خورشیدی نمایش داده می‌شود.',
+            );
         }
 
-        $observed_at = self::observed_at($metadata);
-        if (!$observed_at) {
-            return new WP_Error('jazireh_sun_missing_timestamp', 'Helioviewer did not return an observation timestamp.', array('status' => 502));
+        $fallback = self::fallback_payload(implode(' ', array_filter($errors)));
+        if (self::remote_image_is_available($fallback['image'])) {
+            return $fallback;
         }
 
-        return array(
-            'image' => self::screenshot_url($source, $observed_at),
-            'fallbackImage' => self::SDO_LATEST_304,
-            'observedAt' => $observed_at,
-            'wavelength' => $source['wavelength'],
-            'source' => $source['label'],
-            'sourceUrl' => self::HELIOVIEWER_SITE,
-            'provider' => 'Helioviewer',
-            'sourceId' => $source['sourceId'],
-            'observatory' => $source['observatory'],
-            'instrument' => $source['instrument'],
-            'measurement' => $source['measurement'],
-        );
+        return new WP_Error('jazireh_sun_all_sources_failed', 'No valid current Sun image source was available.', array('status' => 502));
     }
 
     private static function fallback_payload($reason)
@@ -145,6 +210,34 @@ final class Jazireh_Sun_Service
             'measurement' => '304',
             'message' => 'Helioviewer در دسترس نیست؛ تصویر پشتیبان SDO نمایش داده می‌شود.',
             'displayWarning' => 'داده پشتیبان: Helioviewer در دسترس نیست.',
+            'isFallback' => true,
+            'fallbackReason' => $reason,
+            'calculatedAt' => wp_date(DATE_ATOM, $now),
+            'generatedAtUtc' => gmdate(DATE_ATOM, $now),
+            'timezone' => wp_timezone_string(),
+            'location' => self::location_meta(),
+        );
+    }
+
+    private static function unavailable_payload($reason)
+    {
+        $now = current_time('timestamp', true);
+        return array(
+            'status' => 'error',
+            'title' => 'خورشید اکنون',
+            'image' => '',
+            'fallbackImage' => '',
+            'observedAt' => '',
+            'wavelength' => '',
+            'source' => 'Sun data unavailable',
+            'sourceUrl' => '',
+            'provider' => '',
+            'sourceId' => '',
+            'observatory' => '',
+            'instrument' => '',
+            'measurement' => '',
+            'message' => 'تصویر معتبر خورشید در حال حاضر در دسترس نیست.',
+            'displayWarning' => 'داده خورشید در دسترس نیست؛ هیچ تصویر پشتیبان معتبری ذخیره نشده است.',
             'isFallback' => true,
             'fallbackReason' => $reason,
             'calculatedAt' => wp_date(DATE_ATOM, $now),
@@ -179,6 +272,58 @@ final class Jazireh_Sun_Service
         }
 
         return $data;
+    }
+
+    private static function remote_image_is_available($url)
+    {
+        $url = self::safe_image_url($url);
+        if ($url === '') {
+            return false;
+        }
+
+        foreach (array('HEAD', 'GET') as $method) {
+            $args = array(
+                'timeout' => 8,
+                'redirection' => 3,
+            );
+            if ($method === 'GET') {
+                $args['limit_response_size'] = 2048;
+            }
+
+            $response = $method === 'HEAD' ? wp_remote_head($url, $args) : wp_remote_get($url, $args);
+            if (is_wp_error($response)) {
+                continue;
+            }
+
+            $status = (int) wp_remote_retrieve_response_code($response);
+            $content_type = strtolower((string) wp_remote_retrieve_header($response, 'content-type'));
+            if ($status >= 200 && $status < 400 && self::is_image_content_type($content_type)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function safe_image_url($url)
+    {
+        if (!is_string($url) || trim($url) === '') {
+            return '';
+        }
+
+        $url = esc_url_raw(trim($url));
+        $scheme = wp_parse_url($url, PHP_URL_SCHEME);
+        $host = wp_parse_url($url, PHP_URL_HOST);
+        if ($scheme !== 'https' || !$host) {
+            return '';
+        }
+
+        return $url;
+    }
+
+    private static function is_image_content_type($content_type)
+    {
+        return is_string($content_type) && preg_match('/^image\/(jpeg|png|gif|webp|bmp|tiff)/', $content_type);
     }
 
     private static function screenshot_url($source, $observed_at)

@@ -2,14 +2,11 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Sun } from 'lucide-react'
 import ObservatoryCard from './ObservatoryCard'
 
-const SDO_FALLBACK_IMAGE = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg'
-
 export default function SunNowCard({ widget, loading = false }) {
   const data = widget?.data
   const imageCandidates = [
     normalizeImageUrl(data?.image),
     normalizeImageUrl(data?.fallbackImage),
-    SDO_FALLBACK_IMAGE
   ].filter(Boolean)
   const [imageIndex, setImageIndex] = useState(0)
   const imageUrl = imageCandidates[imageIndex] || ''

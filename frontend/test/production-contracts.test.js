@@ -7,6 +7,8 @@ const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
+const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
+const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
@@ -111,6 +113,19 @@ test('videos page uses cached internal data and safe click-to-load YouTube embed
   assert.match(videosPageSource, /loading="lazy"/)
   assert.doesNotMatch(videosPageSource, /dangerouslySetInnerHTML/)
   assert.doesNotMatch(videosPageSource, /https:\/\/www\.googleapis\.com\/youtube/)
+})
+
+test('sun components render backend-provided states without hardcoded image fallback', () => {
+  for (const source of [sunPreviewSource, sunNowCardSource]) {
+    assert.match(source, /data\?\.image/)
+    assert.match(source, /data\?\.fallbackImage/)
+    assert.match(source, /onError=\{\(\) => setImageIndex\(\(current\) => current \+ 1\)\}/)
+    assert.doesNotMatch(source, /sdo\.gsfc\.nasa\.gov\/assets\/img\/latest\/latest_1024_0304\.jpg/)
+  }
+  assert.match(sunPreviewSource, /ready: 'آماده'/)
+  assert.match(sunPreviewSource, /stale: 'آخرین داده موجود'/)
+  assert.match(sunPreviewSource, /error: 'خطای دریافت'/)
+  assert.match(sunPreviewSource, /loading: 'در حال دریافت'/)
 })
 
 test('APOD video URL normalization supports safe providers and trusted NASA files', () => {
