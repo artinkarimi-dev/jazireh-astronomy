@@ -16,21 +16,24 @@ export default function MoonNowCard({ widget, skyWidget, fallbackSky, loading = 
   )
   const moonAge = numericOr(data?.moonAgeDays, skyMoon?.moonAgeDays, fallbackSky?.moonAge, moon.moonAge)
   const phaseLabel = data?.phaseLabelFa || skyMoon?.phaseLabelFa || fallbackSky?.moonPhase || moon.phaseLabelFa
-  const trendLabel = data?.waxingWaningLabelFa || skyMoon?.waxingWaningLabelFa || fallbackSky?.moonTrend || (moonAge < 14.765 ? 'افزایشی' : 'کاهشی')
+  const backendTrend = data?.waxingWaning || skyMoon?.waxingWaning || ''
+  const isWaxing = backendTrend ? backendTrend === 'waxing' : moonAge < 14.765
+  const trendLabel = data?.waxingWaningLabelFa || skyMoon?.waxingWaningLabelFa || fallbackSky?.moonTrend || (isWaxing ? 'افزاینده' : 'کاهنده')
   const altitude = moon.altitude
   const azimuth = moon.azimuth
+  const locationLabel = `${location.name}${location.country ? `، ${location.country}` : ''}`
+  const locationDisplay = location.isDefaultLocation ? `پیش‌فرض: ${locationLabel}` : locationLabel
   const visibleLabel = altitude > 0 ? `بالای افق ${directionLabel(azimuth)}` : 'زیر افق'
   const visibilityNote = altitude > 0
-    ? `ارتفاع تقریبی ${toFaNumber(altitude.toFixed(0))} درجه و سمت ${directionLabel(azimuth)} برای ${location.name}.`
-    : `اکنون برای ${location.name} زیر افق است؛ زمان دیگری از شب را در آسمان امروز بررسی کنید.`
+    ? `ارتفاع تقریبی ${toFaNumber(altitude.toFixed(0))} درجه و سمت ${directionLabel(azimuth)} برای ${locationDisplay}.`
+    : `اکنون برای ${locationDisplay} زیر افق است؛ زمان دیگری از شب را در آسمان امروز بررسی کنید.`
   const illumination = `${toFaNumber(illuminationNumber.toFixed(0))}٪`
-  const isWaxing = moonAge < 14.765
 
   return (
     <ObservatoryCard
       eyebrow="Moon Now"
       title="ماه اکنون"
-      description="فاز، روشنایی و جایگاه فعلی ماه با محاسبات نجومی تقریبی؛ این تصویر زنده یا عکس واقعی نیست."
+      description="فاز و روشنایی ماه به‌صورت جهانی محاسبه می‌شود؛ جایگاه افقی برای مکان انتخاب‌شده یا مکان پیش‌فرض ابزار است."
       status={loading ? 'stale' : widget?.status}
       message={loading ? 'در حال محاسبه' : widget?.message}
       updatedAt={widget?.updatedAt}
@@ -63,7 +66,7 @@ export default function MoonNowCard({ widget, skyWidget, fallbackSky, loading = 
         <Metric label="سمت" value={`${toFaNumber(azimuth.toFixed(0))}° ${directionLabel(azimuth)}`} />
         {!compact ? <Metric label="ماه کامل بعدی" value={formatDate(data?.nextFullMoon)} /> : null}
         {!compact ? <Metric label="ماه نو بعدی" value={formatDate(data?.nextNewMoon)} /> : null}
-        <Metric label="مکان" value={`${location.name}${location.country ? `، ${location.country}` : ''}`} />
+        <Metric label="مکان مبنا" value={locationDisplay} />
         {!compact ? <Metric label="دقت" value="تقریبی، آموزشی" /> : null}
       </dl>
     </ObservatoryCard>
@@ -180,21 +183,21 @@ function parseNumberish(value) {
 }
 
 function readPreferredLocation() {
-  if (typeof window === 'undefined') return getCityById('tehran')
+  if (typeof window === 'undefined') return { ...getCityById('tehran'), isDefaultLocation: true }
 
   try {
     const savedCity = window.localStorage.getItem('jazireh.sky.city')
     if (savedCity === 'custom') {
       const savedLocation = JSON.parse(window.localStorage.getItem('jazireh.sky.customLocation') || 'null')
       if (Number.isFinite(Number(savedLocation?.latitude)) && Number.isFinite(Number(savedLocation?.longitude))) {
-        return locationFromCoords(savedLocation.latitude, savedLocation.longitude)
+        return { ...locationFromCoords(savedLocation.latitude, savedLocation.longitude), isDefaultLocation: false }
       }
     }
 
-    if (SKY_CITIES.some((city) => city.id === savedCity)) return getCityById(savedCity)
+    if (SKY_CITIES.some((city) => city.id === savedCity)) return { ...getCityById(savedCity), isDefaultLocation: false }
   } catch {
-    // Saved location is optional; Tehran is the safe default.
+    // Saved location is optional; the UI labels Tehran as the default.
   }
 
-  return getCityById('tehran')
+  return { ...getCityById('tehran'), isDefaultLocation: true }
 }

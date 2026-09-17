@@ -9,6 +9,7 @@ const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx',
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
 const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
 const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
+const moonNowCardSource = await readFile(new URL('../src/components/observatory/MoonNowCard.jsx', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
@@ -126,6 +127,15 @@ test('sun components render backend-provided states without hardcoded image fall
   assert.match(sunPreviewSource, /stale: 'آخرین داده موجود'/)
   assert.match(sunPreviewSource, /error: 'خطای دریافت'/)
   assert.match(sunPreviewSource, /loading: 'در حال دریافت'/)
+})
+
+test('moon component uses backend phase direction and labels default location explicitly', () => {
+  assert.match(moonNowCardSource, /const backendTrend = data\?\.waxingWaning \|\| skyMoon\?\.waxingWaning \|\| ''/)
+  assert.match(moonNowCardSource, /backendTrend \? backendTrend === 'waxing' : moonAge < 14\.765/)
+  assert.match(moonNowCardSource, /isDefaultLocation/)
+  assert.match(moonNowCardSource, /پیش‌فرض:/)
+  assert.match(moonNowCardSource, /Math\.max\(0, Math\.min\(100/)
+  assert.match(moonNowCardSource, /این تصویر زنده یا عکس واقعی نیست|جایگاه افقی برای مکان انتخاب‌شده/)
 })
 
 test('APOD video URL normalization supports safe providers and trusted NASA files', () => {
