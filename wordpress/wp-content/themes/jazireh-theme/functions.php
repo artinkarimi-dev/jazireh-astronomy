@@ -126,7 +126,9 @@ add_action('wp_head', 'jazireh_theme_runtime_config', 1);
 
 function jazireh_theme_brand_meta()
 {
-    $manifest_url = trailingslashit(get_template_directory_uri()) . 'dist/manifest.webmanifest';
+    $manifest_path = get_template_directory() . '/dist/.vite/manifest.json';
+    $build_version = file_exists($manifest_path) ? (string) filemtime($manifest_path) : (string) wp_get_theme()->get('Version');
+    $manifest_url = add_query_arg('ver', $build_version, trailingslashit(get_template_directory_uri()) . 'dist/manifest.webmanifest');
     if (!has_site_icon()) {
         $brand_base = trailingslashit(get_template_directory_uri()) . 'dist/brand/';
         echo '<link rel="icon" href="' . esc_url($brand_base . 'favicon.ico') . '" sizes="any">';

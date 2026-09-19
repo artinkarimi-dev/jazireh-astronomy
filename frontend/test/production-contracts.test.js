@@ -5,11 +5,14 @@ import { test } from 'node:test'
 const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 'utf8')
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
+const apodBannerSource = await readFile(new URL('../src/components/home/ApodBanner.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
 const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
 const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
 const moonNowCardSource = await readFile(new URL('../src/components/observatory/MoonNowCard.jsx', import.meta.url), 'utf8')
+const viteConfigSource = await readFile(new URL('../vite.config.js', import.meta.url), 'utf8')
+const webManifestSource = await readFile(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
@@ -32,6 +35,14 @@ test('GET request coalescing and session cache remain enabled for provider-backe
   assert.match(apiSource, /window\.sessionStorage\.setItem/)
   assert.match(apiSource, /path === '\/api\/planets'/)
   assert.match(apiSource, /path === '\/api\/apod'/)
+})
+
+test('WordPress build uses relative chunk and manifest asset paths', () => {
+  assert.match(viteConfigSource, /base:\s*'\.\/'/)
+  assert.match(webManifestSource, /"start_url": "\.\/"/)
+  assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-192\.png"/)
+  assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-512\.png"/)
+  assert.doesNotMatch(webManifestSource, /"src": "\/brand\//)
 })
 
 test('APOD Persian localization only renders when source hashes match', () => {
@@ -82,6 +93,14 @@ test('APOD stale or failed translations fall back to current NASA original', () 
     assert.equal(display.content, 'NASA current explanation')
     assert.match(display.warning, /NASA/)
   }
+})
+
+test('homepage APOD banner handles missing APOD without throwing', () => {
+  assert.match(apodBannerSource, /item\?\.isFallback/)
+  assert.match(apodBannerSource, /item\?\.displayWarning/)
+  assert.match(apodBannerSource, /item \? display\.title/)
+  assert.doesNotMatch(apodBannerSource, /item\.isFallback/)
+  assert.doesNotMatch(apodBannerSource, /\{item\.displayWarning \?/)
 })
 
 test('APOD image days use image rendering and not video embed markup', () => {

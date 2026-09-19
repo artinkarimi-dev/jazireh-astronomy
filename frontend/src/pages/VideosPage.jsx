@@ -187,8 +187,6 @@ export default function VideosPage() {
     else videoRef.current?.requestFullscreen?.()
   }
 
-  const activePoster = active?.thumbnail || active?.poster || `https://i.ytimg.com/vi/${activeYoutubeId}/hqdefault.jpg`
-
   return (
     <>
       <PageHero eyebrow="ویدیوهای جزیره" title="تماشای نجوم و فضا" description="آخرین ویدیوهای عمومی کانال رسمی جزیره از طریق WordPress و منبع رسمی یوتیوب به‌صورت سروری همگام می‌شوند.">
@@ -225,8 +223,8 @@ export default function VideosPage() {
                   />
                 ) : isYoutubeVideo ? (
                   <button type="button" onClick={toggle} className="video-poster aspect-video w-full" aria-label="پخش ویدیو از یوتیوب">
-                    <img src={activePoster} alt="" className="h-full w-full object-cover opacity-85" loading="lazy" />
-                    <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                    <span className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(239,68,68,.35),transparent_28%),linear-gradient(135deg,rgba(15,23,42,.98),rgba(30,41,59,.78)_48%,rgba(127,29,29,.65))]" />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-red-500/90 text-white shadow-[0_18px_60px_rgba(239,68,68,.35)]"><Play className="mr-1 h-7 w-7 fill-current" /></span></span>
                   </button>
                 ) : (
