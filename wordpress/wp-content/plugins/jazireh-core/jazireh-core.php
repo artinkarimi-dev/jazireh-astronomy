@@ -73,6 +73,7 @@ function jazireh_core_activate()
     Jazireh_APOD_Editorial::register_content_type();
     Jazireh_News::seed_content();
     Jazireh_Newsletter::maybe_upgrade_schema();
+    Jazireh_APOD_Service::schedule_refresh();
     Jazireh_Sun_Service::maybe_schedule_refresh();
     Jazireh_Settings::schedule_widget_prewarm();
     Jazireh_YouTube::maybe_schedule_refresh();
@@ -82,6 +83,8 @@ register_activation_hook(__FILE__, 'jazireh_core_activate');
 
 function jazireh_core_deactivate()
 {
+    Jazireh_APOD_Localizer::clear_schedule();
+    Jazireh_APOD_Service::clear_schedule();
     Jazireh_Settings::clear_widget_prewarm();
     Jazireh_Sun_Service::clear_schedule();
     Jazireh_YouTube::clear_schedule();

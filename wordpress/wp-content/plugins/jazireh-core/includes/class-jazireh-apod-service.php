@@ -9,6 +9,7 @@ final class Jazireh_APOD_Service
     const WIDGET_KEY = 'apod';
     const CACHE_TTL = 21600;
     const REFRESH_HOOK = 'jazireh_refresh_apod_cache';
+    const RETRY_DELAY = 1800;
 
     public static function boot()
     {
@@ -109,7 +110,9 @@ final class Jazireh_APOD_Service
     {
         delete_transient('jazireh_apod_latest_range_1');
         Jazireh_Widgets::delete_cached(self::WIDGET_KEY);
-        return self::widget(1, array('forceRefresh' => true));
+        $result = self::widget(1, array('forceRefresh' => true));
+        self::schedule_next_refresh($result);
+        return $result;
     }
 
     public static function cached_home_payload()
@@ -233,11 +236,37 @@ final class Jazireh_APOD_Service
         return (string) $items[0]['date'] < gmdate('Y-m-d', current_time('timestamp', true));
     }
 
-    private static function schedule_refresh()
+    public static function schedule_refresh()
     {
         if (!wp_next_scheduled(self::REFRESH_HOOK)) {
             wp_schedule_single_event(time() + 2 * MINUTE_IN_SECONDS, self::REFRESH_HOOK);
         }
+    }
+
+    public static function clear_schedule()
+    {
+        wp_clear_scheduled_hook(self::REFRESH_HOOK);
+    }
+
+    private static function schedule_next_refresh($result)
+    {
+        if (wp_next_scheduled(self::REFRESH_HOOK)) {
+            return;
+        }
+
+        $status = is_array($result) ? sanitize_key((string) ($result['status'] ?? '')) : '';
+        $delay = $status === Jazireh_Widgets::STATE_READY ? self::seconds_until_next_daily_refresh() : self::RETRY_DELAY;
+        wp_schedule_single_event(time() + $delay, self::REFRESH_HOOK);
+    }
+
+    private static function seconds_until_next_daily_refresh()
+    {
+        $now = current_time('timestamp', true);
+        $next = strtotime('tomorrow 00:30 UTC', $now);
+        if (!$next || $next <= $now) {
+            return self::CACHE_TTL;
+        }
+        return max(MINUTE_IN_SECONDS, $next - $now);
     }
 
     private static function nasa_api_key()

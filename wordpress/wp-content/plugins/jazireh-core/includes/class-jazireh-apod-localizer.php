@@ -53,6 +53,11 @@ final class Jazireh_APOD_Localizer
         return (bool) wp_schedule_single_event(time() + MINUTE_IN_SECONDS, self::CRON_HOOK, array($date));
     }
 
+    public static function clear_schedule()
+    {
+        wp_unschedule_hook(self::CRON_HOOK);
+    }
+
     public static function process_date($date)
     {
         $date = self::sanitize_date($date);
