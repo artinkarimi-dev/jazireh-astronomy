@@ -17,9 +17,57 @@ const fallbackTopic = {
   related: { news: [], videos: [], apod: [], events: [], objects: [] }
 }
 
+const fallbackTopics = [
+  fallbackTopic,
+  {
+    slug: 'sun',
+    title: 'خورشید',
+    eyebrow: 'Sun',
+    description: 'خورشید اکنون، تصویرهای رصدی معتبر و توضیح علمی فعالیت‌های خورشیدی.',
+    accent: '#f6c84f',
+    featuredRoute: '/',
+    featuredLabel: 'خورشید اکنون',
+    related: { news: [], videos: [], apod: [], events: [], objects: [] }
+  },
+  {
+    slug: 'mars',
+    title: 'مریخ',
+    eyebrow: 'Mars',
+    description: 'ماموریت‌ها، سطح مریخ، شرایط رصد و خبرهای سیاره سرخ.',
+    accent: '#fb923c',
+    featuredRoute: '/explore',
+    featuredLabel: 'کاوش منظومه شمسی',
+    related: { news: [], videos: [], apod: [], events: [], objects: [] }
+  },
+  {
+    slug: 'james-webb',
+    title: 'جیمز وب',
+    eyebrow: 'JWST',
+    description: 'رصدهای فروسرخ، کهکشان‌های دور و تصویرهای علمی تلسکوپ فضایی جیمز وب.',
+    accent: '#7dd3fc',
+    featuredRoute: '/apod',
+    featuredLabel: 'عکس روز ناسا',
+    related: { news: [], videos: [], apod: [], events: [], objects: [] }
+  },
+  {
+    slug: 'earth',
+    title: 'زمین',
+    eyebrow: 'Earth',
+    description: 'زمین از فضا، رخدادهای زمین‌لرزه و ارتباط سیاره ما با رصد آسمان.',
+    accent: '#38bdf8',
+    featuredRoute: '/sky',
+    featuredLabel: 'آسمان امروز',
+    related: { news: [], videos: [], apod: [], events: [], objects: [] }
+  }
+]
+
+function fallbackTopicForSlug(slug = '') {
+  return fallbackTopics.find((topic) => topic.slug === slug) || { ...fallbackTopic, slug: slug || fallbackTopic.slug }
+}
+
 export default function TopicDetailsPage() {
   const { slug } = useParams()
-  const [topic, setTopic] = useState({ ...fallbackTopic, slug: slug || fallbackTopic.slug })
+  const [topic, setTopic] = useState(() => fallbackTopicForSlug(slug))
   const [state, setState] = useState('loading')
 
   usePageMeta(topic.title ? `پرونده ${topic.title}` : 'پرونده علمی', topic.description || 'پرونده علمی جزیره.')
@@ -27,6 +75,7 @@ export default function TopicDetailsPage() {
   useEffect(() => {
     let active = true
     setState('loading')
+    setTopic(fallbackTopicForSlug(slug))
     api.get(`/api/topics/${encodeURIComponent(slug || '')}`).then((response) => {
       if (!active) return
       setTopic(normalizeTopic(response.data))
@@ -70,7 +119,7 @@ export default function TopicDetailsPage() {
 
       <section className="content-shell section-space">
         {state === 'loading' ? (
-          <div className="surface-card flex min-h-[280px] items-center justify-center p-8">
+          <div className="surface-card flex min-h-[430px] items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-sky-200" />
           </div>
         ) : (
