@@ -6,7 +6,11 @@ const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'ut
 const apiSource = await readFile(new URL('../src/lib/api.js', import.meta.url), 'utf8')
 const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', import.meta.url), 'utf8')
 const apodBannerSource = await readFile(new URL('../src/components/home/ApodBanner.jsx', import.meta.url), 'utf8')
+const headerSource = await readFile(new URL('../src/components/Header.jsx', import.meta.url), 'utf8')
+const layoutSource = await readFile(new URL('../src/components/Layout.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
+const newsPageSource = await readFile(new URL('../src/pages/NewsPage.jsx', import.meta.url), 'utf8')
+const skyTodayPageSource = await readFile(new URL('../src/pages/SkyTodayPage.jsx', import.meta.url), 'utf8')
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
 const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
 const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
@@ -43,6 +47,28 @@ test('WordPress build uses relative chunk and manifest asset paths', () => {
   assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-192\.png"/)
   assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-512\.png"/)
   assert.doesNotMatch(webManifestSource, /"src": "\/brand\//)
+})
+
+test('global navigation exposes skip link and keyboard-safe mobile drawer', () => {
+  assert.match(layoutSource, /href="#main-content"/)
+  assert.match(layoutSource, /<main id="main-content" tabIndex="-1"/)
+  assert.match(headerSource, /aria-controls=\{open \? 'mobile-menu-drawer' : undefined\}/)
+  assert.match(headerSource, /aria-expanded=\{open\}/)
+  assert.match(headerSource, /role="dialog"/)
+  assert.match(headerSource, /aria-modal="true"/)
+  assert.match(headerSource, /drawerRef/)
+  assert.match(headerSource, /menuButtonRef/)
+  assert.match(headerSource, /getFocusableElements/)
+  assert.match(headerSource, /event\.key !== 'Tab'/)
+  assert.match(headerSource, /menuButtonRef\.current\.focus\(\)/)
+})
+
+test('public search controls have programmatic labels', () => {
+  assert.match(newsPageSource, /htmlFor="news-search"/)
+  assert.match(newsPageSource, /id="news-search"/)
+  assert.match(skyTodayPageSource, /htmlFor="sky-object-search"/)
+  assert.match(skyTodayPageSource, /id="sky-object-search"/)
+  assert.match(skyTodayPageSource, /aria-label="تنظیم زمان نقشه آسمان"/)
 })
 
 test('APOD Persian localization only renders when source hashes match', () => {

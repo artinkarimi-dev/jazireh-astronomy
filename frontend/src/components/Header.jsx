@@ -1,5 +1,5 @@
 import { Menu, X, Youtube } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import Logo from './Logo'
@@ -32,6 +32,9 @@ function HeaderNavItem({ item, className, activeClassName = '' }) {
 
 export default function Header() {
   const [open, setOpen] = useState(false)
+  const menuButtonRef = useRef(null)
+  const drawerRef = useRef(null)
+  const wasOpenRef = useRef(false)
   const { pathname } = useLocation()
   const { settings } = useSiteSettings()
   const menuItems = withRequiredLinks(settings.menus.primary || [])
@@ -47,10 +50,38 @@ export default function Header() {
   useEffect(() => {
     if (!open) return undefined
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setOpen(false)
+        return
+      }
+
+      if (event.key !== 'Tab') return
+      const focusable = getFocusableElements(drawerRef.current)
+      if (!focusable.length) {
+        event.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open])
+  useEffect(() => {
+    if (open) {
+      window.requestAnimationFrame(() => getFocusableElements(drawerRef.current)[0]?.focus())
+    } else if (wasOpenRef.current && menuButtonRef.current?.isConnected) {
+      menuButtonRef.current.focus()
+    }
+    wasOpenRef.current = open
   }, [open])
 
   return (
@@ -70,12 +101,13 @@ export default function Header() {
             {youtube.label}
           </a>
           <button
+            ref={menuButtonRef}
             type="button"
             className="icon-button xl:hidden"
             onClick={() => setOpen(true)}
             aria-label="باز کردن منو"
             aria-expanded={open}
-            aria-controls="mobile-menu-drawer"
+            aria-controls={open ? 'mobile-menu-drawer' : undefined}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -85,6 +117,7 @@ export default function Header() {
       {open && (
         <div className="mobile-drawer-shell xl:hidden" onClick={() => setOpen(false)}>
           <div
+            ref={drawerRef}
             id="mobile-menu-drawer"
             className="mobile-drawer-panel"
             onClick={(event) => event.stopPropagation()}
@@ -114,6 +147,11 @@ export default function Header() {
       )}
     </header>
   )
+}
+
+function getFocusableElements(container) {
+  if (!container) return []
+  return Array.from(container.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
 }
 
 function withRequiredLinks(items) {

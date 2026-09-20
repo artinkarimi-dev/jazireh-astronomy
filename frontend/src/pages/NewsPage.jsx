@@ -32,7 +32,8 @@ export default function NewsPage() {
       <section className="content-shell section-space">
         <div className="surface-card news-filter-bar mb-7 flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className={`search-field w-full lg:max-w-md ${query ? 'has-clear' : ''}`}>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} className="input-field search-input" placeholder="جستجو در خبرها..." />
+            <label htmlFor="news-search" className="sr-only">جستجو در خبرها</label>
+            <input id="news-search" value={query} onChange={(event) => setQuery(event.target.value)} className="input-field search-input" placeholder="جستجو در خبرها..." />
             <Search className="search-icon h-4 w-4" />
             {query ? (
               <button type="button" onClick={() => setQuery('')} className="search-input-clear" aria-label="پاک کردن جستجو">

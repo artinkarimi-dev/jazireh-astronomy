@@ -290,7 +290,8 @@ export default function SkyTodayPage() {
 
           <div className="sky-control-card">
             <span className="eyebrow"><Search className="h-4 w-4" /> جست‌وجوی آسمان</span>
-            <input className="input-field" value={skySearch} onChange={(event) => setSkySearch(event.target.value)} placeholder="ماه، زهره، شباهنگ..." />
+            <label className="sky-control-label" htmlFor="sky-object-search">جرم یا صورت فلکی</label>
+            <input id="sky-object-search" className="input-field" value={skySearch} onChange={(event) => setSkySearch(event.target.value)} placeholder="ماه، زهره، شباهنگ..." />
             {searchResults.length ? (
               <div className="sky-search-results">
                 {searchResults.map((item) => (
