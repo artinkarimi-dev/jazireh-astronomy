@@ -8,6 +8,7 @@ const apodPageSource = await readFile(new URL('../src/pages/ApodPage.jsx', impor
 const apodBannerSource = await readFile(new URL('../src/components/home/ApodBanner.jsx', import.meta.url), 'utf8')
 const headerSource = await readFile(new URL('../src/components/Header.jsx', import.meta.url), 'utf8')
 const layoutSource = await readFile(new URL('../src/components/Layout.jsx', import.meta.url), 'utf8')
+const footerSource = await readFile(new URL('../src/components/Footer.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
 const newsPageSource = await readFile(new URL('../src/pages/NewsPage.jsx', import.meta.url), 'utf8')
 const skyTodayPageSource = await readFile(new URL('../src/pages/SkyTodayPage.jsx', import.meta.url), 'utf8')
@@ -153,6 +154,12 @@ test('contact page presents only approved public communication channels', () => 
   assert.match(contactPageSource, /target="_blank"/)
   assert.match(contactPageSource, /rel="noopener noreferrer"/)
   assert.doesNotMatch(contactPageSource, /Youtube|youtube|phone|address|WhatsApp|Twitter|X\/Twitter/)
+})
+
+test('public newsletter signup is intentionally hidden until production workflow exists', () => {
+  assert.doesNotMatch(footerSource, /NewsletterForm|newsletter|خبرنامه|عضویت|subscribe/i)
+  assert.doesNotMatch(apiSource, /\/api\/newsletter|\/newsletter/)
+  assert.doesNotMatch(restSource, /'\/newsletter'|Jazireh_Newsletter::subscribe|public static function newsletter/)
 })
 
 test('videos page uses cached internal data and safe click-to-load YouTube embeds', () => {

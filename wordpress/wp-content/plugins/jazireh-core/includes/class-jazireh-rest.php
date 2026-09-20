@@ -198,11 +198,6 @@ final class Jazireh_REST
             'permission_callback' => array('Jazireh_Daily', 'authorize_sync_request')
         ));
 
-        register_rest_route(self::NAMESPACE_NAME, '/newsletter', array(
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => array(__CLASS__, 'newsletter'),
-            'permission_callback' => '__return_true'
-        ));
     }
 
     public static function news_index(WP_REST_Request $request)
@@ -393,26 +388,6 @@ final class Jazireh_REST
     public static function objects()
     {
         return self::success(Jazireh_Objects::list_objects());
-    }
-
-    public static function newsletter(WP_REST_Request $request)
-    {
-        $payload = $request->get_json_params();
-        $result = Jazireh_Newsletter::subscribe(is_array($payload) ? $payload : array());
-        if (is_wp_error($result)) {
-            $status = (int) ($result->get_error_data()['status'] ?? 400);
-            return new WP_REST_Response(array(
-                'success' => false,
-                'message' => $result->get_error_message(),
-                'errors' => (array) ($result->get_error_data()['errors'] ?? array()),
-            ), $status);
-        }
-
-        return new WP_REST_Response(array(
-            'success' => true,
-            'message' => $result['message'],
-            'data' => null,
-        ), (int) $result['status']);
     }
 
     private static function format_news(WP_Post $post)

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { getPersianYear, siteConfig } from '../config/site'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import Logo from './Logo'
-import NewsletterForm from './NewsletterForm'
 
 export default function Footer() {
   const { settings } = useSiteSettings()
@@ -41,12 +40,6 @@ export default function Footer() {
             ))}
           </div>
         </nav>
-
-        <div className="footer-block">
-          <h2 className="font-bold text-white">{footer.newsletter_title}</h2>
-          <p className="mt-4 text-sm leading-7 text-slate-400">{footer.newsletter_description}</p>
-          <NewsletterForm />
-        </div>
 
         <div className="footer-block">
           <h2 className="font-bold text-white">{footer.youtube_title}</h2>

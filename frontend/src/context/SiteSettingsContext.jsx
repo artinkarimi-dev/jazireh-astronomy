@@ -105,8 +105,6 @@ const defaultSettings = {
     description: siteConfig.description,
     microcopy: 'نجوم، فضا، آموزش و روایت‌های علمی به زبان فارسی.',
     quicklinks_title: 'دسترسی سریع',
-    newsletter_title: 'خبرنامه جزیره',
-    newsletter_description: 'خلاصه رویدادهای نجومی و تازه‌ترین محتوای جزیره را دریافت کنید.',
     youtube_title: 'جزیره در یوتیوب',
     youtube_description: 'مستندها، کلاس‌های نجوم، خبرهای علمی و روایت‌های تصویری.',
     copyright_text: ''

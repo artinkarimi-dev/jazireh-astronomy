@@ -2058,7 +2058,7 @@ button { cursor: pointer; }
   .observatory-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home-feature-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .home-feature-card { grid-column: span 2; }
-  .footer-grid { grid-template-columns: minmax(0, 1.1fr) minmax(12rem, .7fr) minmax(18rem, .95fr) minmax(16rem, .9fr); }
+  .footer-grid { grid-template-columns: minmax(0, 1.15fr) minmax(12rem, .75fr) minmax(16rem, .9fr); }
 }
 
 @media (min-width: 768px) and (max-width: 1279px) {

@@ -99,7 +99,6 @@ function resolveUrl(path) {
   if (path === '/api/topics') return `${WORDPRESS_API_URL}/topics`
   if (path.startsWith('/api/topics/')) return `${WORDPRESS_API_URL}/topics/${path.slice('/api/topics/'.length)}`
   if (path === '/api/sun') return `${WORDPRESS_API_URL}/sun`
-  if (path === '/api/newsletter') return `${WORDPRESS_API_URL}/newsletter`
   if (path === '/api/apod' || path.startsWith('/api/apod?')) return `${WORDPRESS_API_URL}/apod${path.slice('/api/apod'.length)}`
   if (path === '/api/objects' || path.startsWith('/api/objects?')) return `${WORDPRESS_API_URL}/objects${path.slice('/api/objects'.length)}`
   if (path.startsWith('/api/news/')) return `${WORDPRESS_API_URL}/news/${path.slice('/api/news/'.length)}`
