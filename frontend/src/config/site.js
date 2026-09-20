@@ -15,8 +15,8 @@ export const siteConfig = {
     url: import.meta.env.VITE_DEVELOPER_URL || 'https://github.com/artinkarimi-dev'
   },
   brand: {
-    logo: resolveAssetPath('/brand/jazireh-logo.webp'),
-    logoFallback: resolveAssetPath('/brand/jazireh-logo.jpg')
+    logo: resolveAssetPath('/brand/jazireh-logo.jpg'),
+    logoFallback: resolveAssetPath('/brand/jazireh-logo.webp')
   }
 }
 
