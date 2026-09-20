@@ -17,6 +17,12 @@ const sunNowCardSource = await readFile(new URL('../src/components/observatory/S
 const moonNowCardSource = await readFile(new URL('../src/components/observatory/MoonNowCard.jsx', import.meta.url), 'utf8')
 const viteConfigSource = await readFile(new URL('../vite.config.js', import.meta.url), 'utf8')
 const webManifestSource = await readFile(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8')
+const themeFunctionsSource = await readFile(new URL('../../wordpress/wp-content/themes/jazireh-theme/functions.php', import.meta.url), 'utf8')
+const restSource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-rest.php', import.meta.url), 'utf8')
+const dailySource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-daily.php', import.meta.url), 'utf8')
+const corePluginSource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/jazireh-core.php', import.meta.url), 'utf8')
+const gitignoreSource = await readFile(new URL('../../.gitignore', import.meta.url), 'utf8')
+const wordpressHtaccessSource = await readFile(new URL('../../wordpress/.htaccess', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
 
@@ -239,4 +245,45 @@ test('APOD attribution separates source, media, and real credit without fake own
   assert.match(apodPageSource, /رسانه اصلی/)
   assert.match(apodPageSource, /safeHttpsUrl/)
   assert.doesNotMatch(apodPageSource, /© NASA|Copyright:|اعتبار تصویر: \{item\.photographer \|\| 'منبع اصلی تصویر'\}/)
+})
+
+test('production hardening keeps secrets out of public build and sensitive files ignored', () => {
+  for (const source of [apiSource, appSource, webManifestSource]) {
+    assert.doesNotMatch(source, /OPENAI_API_KEY|NASA_API_KEY|YOUTUBE_API_KEY|GOOGLE_API_KEY|DB_PASSWORD|BEGIN PRIVATE KEY|Bearer\s+[A-Za-z0-9._-]+/)
+  }
+  assert.match(gitignoreSource, /^\.env$/m)
+  assert.match(gitignoreSource, /^\.env\.\*$/m)
+  assert.match(gitignoreSource, /\*.bak/)
+  assert.match(gitignoreSource, /database\/\*\.sql/)
+})
+
+test('Jazireh production security headers are configured without local-only HSTS', () => {
+  assert.match(themeFunctionsSource, /function jazireh_theme_security_headers/)
+  assert.match(corePluginSource, /function jazireh_core_send_base_security_headers/)
+  assert.match(corePluginSource, /rest_pre_serve_request/)
+  assert.match(corePluginSource, /login_init/)
+  assert.match(themeFunctionsSource, /Content-Security-Policy/)
+  assert.match(themeFunctionsSource, /X-Content-Type-Options: nosniff/)
+  assert.match(themeFunctionsSource, /Referrer-Policy: strict-origin-when-cross-origin/)
+  assert.match(themeFunctionsSource, /Permissions-Policy:/)
+  assert.match(themeFunctionsSource, /frame-ancestors 'self'/)
+  assert.match(themeFunctionsSource, /JAZIREH_ENABLE_HSTS/)
+  assert.doesNotMatch(themeFunctionsSource, /Strict-Transport-Security.*localhost/)
+})
+
+test('Apache deployment template blocks directory listings and sensitive web files', () => {
+  assert.match(wordpressHtaccessSource, /Options -Indexes/)
+  assert.match(wordpressHtaccessSource, /RewriteRule \(\^\|\/\)\\\./)
+  assert.match(wordpressHtaccessSource, /FilesMatch/)
+  assert.match(wordpressHtaccessSource, /wp-config/)
+  assert.match(wordpressHtaccessSource, /log\|old\|orig\|sql/)
+})
+
+test('state-changing Jazireh Daily sync route enforces signed request permission', () => {
+  assert.match(restSource, /'\/jazireh-daily-sync'[\s\S]*'permission_callback' => array\('Jazireh_Daily', 'authorize_sync_request'\)/)
+  assert.match(dailySource, /x-jazireh-timestamp/)
+  assert.match(dailySource, /x-jazireh-signature/)
+  assert.match(dailySource, /hash_hmac\('sha256'/)
+  assert.match(dailySource, /hash_equals\(\$expected, \$signature\)/)
+  assert.match(dailySource, /set_transient\(\$replay_key, 1, self::SYNC_WINDOW\)/)
 })

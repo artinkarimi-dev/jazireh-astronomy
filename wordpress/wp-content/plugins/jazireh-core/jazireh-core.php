@@ -63,6 +63,28 @@ function jazireh_core_boot()
 }
 add_action('plugins_loaded', 'jazireh_core_boot');
 
+function jazireh_core_send_base_security_headers()
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()');
+    header('X-Frame-Options: SAMEORIGIN');
+
+    if (is_ssl() && defined('JAZIREH_ENABLE_HSTS') && JAZIREH_ENABLE_HSTS) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+add_action('send_headers', 'jazireh_core_send_base_security_headers', 5);
+add_action('login_init', 'jazireh_core_send_base_security_headers', 5);
+add_filter('rest_pre_serve_request', function ($served) {
+    jazireh_core_send_base_security_headers();
+    return $served;
+}, 5);
+
 function jazireh_core_activate()
 {
     Jazireh_News::register_content_types();

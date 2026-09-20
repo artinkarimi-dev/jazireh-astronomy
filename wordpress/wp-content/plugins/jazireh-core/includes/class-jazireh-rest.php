@@ -195,7 +195,7 @@ final class Jazireh_REST
         register_rest_route(self::NAMESPACE_NAME, '/jazireh-daily-sync', array(
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => array('Jazireh_Daily', 'ingest_request'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array('Jazireh_Daily', 'authorize_sync_request')
         ));
 
         register_rest_route(self::NAMESPACE_NAME, '/newsletter', array(

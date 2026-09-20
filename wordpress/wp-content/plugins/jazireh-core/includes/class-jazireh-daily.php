@@ -158,11 +158,6 @@ final class Jazireh_Daily
 
     public static function ingest_request(WP_REST_Request $request)
     {
-        $auth = self::authorize_sync_request($request);
-        if (is_wp_error($auth)) {
-            return $auth;
-        }
-
         $payload = $request->get_json_params();
         $result = self::sync_posts(is_array($payload) ? $payload : array());
         if (is_wp_error($result)) {

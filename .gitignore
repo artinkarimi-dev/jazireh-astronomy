@@ -15,6 +15,14 @@ frontend/.env.*
 backend/.env
 backend/.env.*
 !backend/.env.example
+wp-config.php
+wordpress/wp-config.php
+wp-config-*.php
+wordpress/wp-config-*.php
+*.key
+*.pem
+*.p12
+*.pfx
 
 # Runtime files
 backend/storage/logs/*
@@ -27,6 +35,9 @@ tools/community-sync/logs/
 tools/community-sync/tmp/
 tools/community-sync/run.lock
 database/*.sql
+*.sql
+*.sqlite
+*.sqlite3
 .codex-backups/
 
 # Test and coverage output

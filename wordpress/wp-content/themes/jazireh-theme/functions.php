@@ -43,6 +43,42 @@ function jazireh_theme_disable_tinymce_emoji_plugin($plugins)
 }
 add_filter('tiny_mce_plugins', 'jazireh_theme_disable_tinymce_emoji_plugin');
 
+function jazireh_theme_security_headers()
+{
+    if (is_admin()) {
+        return;
+    }
+
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()');
+    header('X-Frame-Options: SAMEORIGIN');
+
+    $csp = array(
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' blob: https://apod.nasa.gov https://*.nasa.gov https://*.gsfc.nasa.gov",
+        "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
+        "connect-src 'self'",
+        "form-action 'self'",
+    );
+    if (is_ssl()) {
+        $csp[] = 'upgrade-insecure-requests';
+    }
+    header('Content-Security-Policy: ' . implode('; ', $csp));
+
+    if (is_ssl() && defined('JAZIREH_ENABLE_HSTS') && JAZIREH_ENABLE_HSTS) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+add_action('send_headers', 'jazireh_theme_security_headers', 20);
+
 function jazireh_theme_request_path()
 {
     $request_path = wp_parse_url(isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '/', PHP_URL_PATH);
