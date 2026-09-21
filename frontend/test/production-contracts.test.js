@@ -51,8 +51,9 @@ test('GET request coalescing and session cache remain enabled for provider-backe
 test('WordPress build uses relative chunk and manifest asset paths', () => {
   assert.match(viteConfigSource, /base:\s*'\.\/'/)
   assert.match(webManifestSource, /"start_url": "\.\/"/)
-  assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-192\.png"/)
-  assert.match(webManifestSource, /"src": "\/wordpress\/wp-content\/themes\/jazireh-theme\/dist\/brand\/icon-512\.png"/)
+  assert.match(webManifestSource, /"src": "\.\/brand\/icon-192\.png"/)
+  assert.match(webManifestSource, /"src": "\.\/brand\/icon-512\.png"/)
+  assert.doesNotMatch(webManifestSource, /\/wordpress\//)
   assert.doesNotMatch(webManifestSource, /"src": "\/brand\//)
 })
 
