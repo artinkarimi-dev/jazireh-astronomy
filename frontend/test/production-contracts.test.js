@@ -13,6 +13,8 @@ const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx',
 const newsPageSource = await readFile(new URL('../src/pages/NewsPage.jsx', import.meta.url), 'utf8')
 const skyTodayPageSource = await readFile(new URL('../src/pages/SkyTodayPage.jsx', import.meta.url), 'utf8')
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
+const heroSource = await readFile(new URL('../src/components/home/Hero.jsx', import.meta.url), 'utf8')
+const skyPreviewSource = await readFile(new URL('../src/components/home/SkyPreview.jsx', import.meta.url), 'utf8')
 const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
 const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
 const moonNowCardSource = await readFile(new URL('../src/components/observatory/MoonNowCard.jsx', import.meta.url), 'utf8')
@@ -191,6 +193,20 @@ test('sun components render backend-provided states without hardcoded image fall
   assert.match(sunPreviewSource, /stale: 'آخرین داده موجود'/)
   assert.match(sunPreviewSource, /error: 'خطای دریافت'/)
   assert.match(sunPreviewSource, /loading: 'در حال دریافت'/)
+})
+
+test('homepage production polish preserves honest fallback UI states', () => {
+  assert.match(heroSource, /const heroDefaults =/)
+  assert.match(heroSource, /configuredHero\.title \|\| heroDefaults\.title/)
+  assert.match(heroSource, /home-hero-shell/)
+
+  assert.match(sunNowCardSource, /formatObservedAt\(data\?\.observedAt\)/)
+  assert.match(sunNowCardSource, /زمان دقیق در دسترس نیست/)
+
+  assert.match(skyPreviewSource, /formatCloudCover\(data\.cloudCover\)/)
+  assert.match(skyTodayPageSource, /formatCloudCover\(sky\.cloudCover\)/)
+  assert.match(skyPreviewSource, /داده هواشناسی در دسترس نیست/)
+  assert.match(skyTodayPageSource, /داده هواشناسی در دسترس نیست/)
 })
 
 test('Sun Now renders stale fallback images without requiring observation time', () => {

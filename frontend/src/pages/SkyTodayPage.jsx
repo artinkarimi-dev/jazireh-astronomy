@@ -331,7 +331,7 @@ export default function SkyTodayPage() {
         </div>
 
         <div className="sky-metrics-grid mt-5">
-          <MetricCard icon={CloudMoon} title="وضعیت آسمان" value={sky.condition || 'محاسبه محلی'} detail={sky.cloudCover !== null && sky.cloudCover !== undefined ? `ابرناکی ${toFaNumber(sky.cloudCover)}٪` : 'داده زنده هوا ناموجود'} accent="blue" />
+          <MetricCard icon={CloudMoon} title="وضعیت آسمان" value={sky.condition || 'محاسبه محلی'} detail={sky.cloudCover !== null && sky.cloudCover !== undefined ? `ابرناکی ${toFaNumber(sky.cloudCover)}٪` : 'داده هواشناسی در دسترس نیست'} accent="blue" />
           <MetricCard icon={Moon} title="ماه اکنون" value={`${skyModel.moon.phaseLabelFa}، ${toFaNumber(skyModel.moon.illumination.toFixed(0))}٪`} detail={`ارتفاع ${toFaNumber(skyModel.moon.altitude.toFixed(0))} درجه، ${directionLabel(skyModel.moon.azimuth)}`} accent="purple" />
           <MetricCard icon={Sun} title="طلوع و غروب" value={formatSunTimes(skyModel.sunTimes.sunrise, skyModel.sunTimes.sunset, effectiveLocation.timezone)} detail={`پایان گرگ‌ومیش نجومی: ${formatTime(skyModel.sunTimes.astronomicalDusk, effectiveLocation.timezone)}`} accent="orange" />
           <MetricCard icon={Clock3} title="بهترین زمان رصد" value={derivedHighlights[0]?.value || sky.bestTime || 'امشب'} detail={derivedHighlights[0]?.summary || 'برآورد براساس غروب خورشید و نور ماه'} accent="yellow" />
@@ -364,7 +364,7 @@ export default function SkyTodayPage() {
             <h3 className="card-title">شرایط رصد</h3>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Quality icon={Eye} label="شاخص رصد" value={sky.observingCondition?.label || 'نمایش تقریبی'} />
-              <Quality icon={Eye} label="ابرناکی" value={formatPercent(sky.cloudCover)} />
+              <Quality icon={Eye} label="ابرناکی" value={formatCloudCover(sky.cloudCover)} />
               <Quality icon={Droplets} label="رطوبت" value={formatPercent(sky.humidity)} />
               <Quality icon={Wind} label="سرعت باد" value={formatUnit(sky.wind, 'km/h')} />
             </div>
@@ -419,6 +419,7 @@ function MetricCard({ icon: Icon, title, value, detail, accent }) {
 function Quality({ icon: Icon, label, value }) { return <div className="metric-tile"><Icon className="h-5 w-5 text-sky-300" /><span className="mt-3 block text-xs text-slate-500">{label}</span><strong className="mt-1 block text-sm text-white">{value}</strong></div> }
 function Tip({ title, text }) { return <div className="tip-card"><strong>{title}</strong><p>{text}</p></div> }
 function formatPercent(value) { return value === null || value === undefined || value === '' ? 'ناموجود' : `${toFaNumber(value)}٪` }
+function formatCloudCover(value) { return value === null || value === undefined || value === '' ? 'داده هواشناسی در دسترس نیست' : `${toFaNumber(value)}٪` }
 function formatUnit(value, unit) { return value === null || value === undefined || value === '' ? 'ناموجود' : `${toFaNumber(value)} ${unit}` }
 function formatSunTimes(sunrise, sunset, timezone) { return sunrise && sunset ? `${formatTime(sunrise, timezone)} / ${formatTime(sunset, timezone)}` : 'در دسترس نیست' }
 function normalizePlanets(data) {

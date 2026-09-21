@@ -25,7 +25,7 @@ export default function SkyPreview({ data = skyData, content = {}, className = '
         <Mini icon={Clock3} label="بهترین بازه" value={data.bestTime || 'در دسترس نیست'} />
         <Mini icon={Moon} label="فاز ماه" value={moonValue} />
         <Mini icon={Eye} label="شرایط رصد" value={data.observingCondition?.label || data.condition || 'نمایش تقریبی'} />
-        <Mini icon={Activity} label="ابرناکی" value={formatPercent(data.cloudCover)} />
+        <Mini icon={Activity} label="ابرناکی" value={formatCloudCover(data.cloudCover)} />
       </div>
 
       <div className="home-sky-context-row">
@@ -85,6 +85,6 @@ function Mini({ icon: Icon, label, value, wide }) {
   )
 }
 
-function formatPercent(value) {
-  return value === null || value === undefined || value === '' ? 'ناموجود' : `${value}٪`
+function formatCloudCover(value) {
+  return value === null || value === undefined || value === '' ? 'داده هواشناسی در دسترس نیست' : `${value}٪`
 }

@@ -453,9 +453,12 @@ button { cursor: pointer; }
 }
 
 .home-hero {
-  min-height: clamp(32rem, 86svh, 42rem);
+  min-height: clamp(30rem, 68svh, 38rem);
   border-bottom: 1px solid rgba(255,255,255,.08);
   background: #02050b;
+}
+.home-hero-shell {
+  min-height: clamp(30rem, 68svh, 38rem);
 }
 .home-hero-video {
   position: absolute;
@@ -2072,6 +2075,7 @@ button { cursor: pointer; }
 @media (max-width: 1023px) {
   .page-surface { padding-bottom: calc(var(--mobile-nav-height) + 26px + env(safe-area-inset-bottom, 0px)); }
   .home-hero { min-height: auto; }
+  .home-hero-shell { min-height: auto; }
   .home-observatory-grid,
   .home-live-trio,
   .home-wide-grid,
@@ -2167,7 +2171,8 @@ button { cursor: pointer; }
 
 @media (min-width: 1700px) {
   :root { --content-max: 1600px; --shell-inline: 34px; }
-  .home-hero { min-height: 740px; }
+  .home-hero,
+  .home-hero-shell { min-height: 660px; }
 }
 
 /* V7 responsive engineering layer: content-driven adaptation, not device-name hacks. */

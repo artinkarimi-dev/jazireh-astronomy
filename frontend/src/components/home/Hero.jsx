@@ -9,7 +9,31 @@ import { resolveAssetPath } from '../../lib/utils'
 export default function Hero({ sky = skyData }) {
   const { settings } = useSiteSettings()
   const [preferStaticHero, setPreferStaticHero] = useState(false)
-  const hero = settings.homepage.hero
+  const configuredHero = settings.homepage.hero || {}
+  const heroDefaults = {
+    kicker: 'جزیره؛ نجوم و علم به زبان فارسی',
+    title: 'آسمان را ببینید،',
+    highlight: 'جهان را بهتر بفهمید.',
+    description: 'خبرهای علمی، کلاس‌های نجوم، وضعیت رصد، تصویر روز ناسا و تجربه‌های تعاملی فضایی؛ همه در مسیر محتوایی جزیره.',
+    primaryAction: { label: 'آسمان امشب', url: '/sky' },
+    secondaryAction: { label: 'کاوش منظومه شمسی', url: '/explore' },
+    media: {
+      type: 'video',
+      imageUrl: '/media/home-hero-stars.jpg',
+      videoUrl: '/media/home-hero-stars.mp4',
+    },
+  }
+  const hero = {
+    ...heroDefaults,
+    ...configuredHero,
+    kicker: configuredHero.kicker || heroDefaults.kicker,
+    title: configuredHero.title || heroDefaults.title,
+    highlight: configuredHero.highlight || heroDefaults.highlight,
+    description: configuredHero.description || heroDefaults.description,
+    primaryAction: configuredHero.primaryAction?.label ? configuredHero.primaryAction : heroDefaults.primaryAction,
+    secondaryAction: configuredHero.secondaryAction?.label ? configuredHero.secondaryAction : heroDefaults.secondaryAction,
+    media: { ...heroDefaults.media, ...(configuredHero.media || {}) },
+  }
   const youtube = settings.social.youtube
   const logoUrl = settings.identity.logo?.url || siteConfig.brand.logo
   const heroImage = resolveAssetPath(hero.media?.imageUrl || '/media/home-hero-stars.jpg')
@@ -40,7 +64,7 @@ export default function Hero({ sky = skyData }) {
       <div className="home-hero-overlay" />
       <div className="home-hero-glow" />
 
-      <div className="content-shell relative grid min-h-[clamp(32rem,86svh,42rem)] items-center gap-7 py-10 sm:gap-8 sm:py-12 lg:grid-cols-[minmax(0,1.28fr)_minmax(18rem,.72fr)] lg:py-16 xl:gap-12">
+      <div className="content-shell home-hero-shell relative grid items-center gap-7 py-10 sm:gap-8 sm:py-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,.95fr)] lg:py-14 xl:gap-10">
         <div className="reveal-up max-w-4xl">
           <span className="hero-kicker">{hero.kicker}</span>
           <h1 className="mt-5 max-w-[13ch] text-[clamp(2.2rem,7vw,4.6rem)] font-black leading-[1.08] text-white">
@@ -79,9 +103,9 @@ export default function Hero({ sky = skyData }) {
               <CloudMoon className="h-8 w-8 text-sky-300" />
             </div>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <HeroMetric label="هوا" value={sky.temperature === null || sky.temperature === undefined ? 'ناموجود' : `${sky.temperature}°`} accent="orange" />
+              <HeroMetric label="هوا" value={sky.temperature === null || sky.temperature === undefined ? 'در دسترس نیست' : `${sky.temperature}°`} accent="orange" />
               <HeroMetric label="وضعیت" value={sky.condition} accent="blue" />
-              <HeroMetric label="رصد" value={sky.bestTime || 'ناموجود'} accent="purple" />
+              <HeroMetric label="رصد" value={sky.bestTime || 'در دسترس نیست'} accent="purple" />
             </div>
             {sky.displayWarning ? <p className="mt-3 text-xs leading-6 text-slate-400">{sky.displayWarning}</p> : null}
           </div>

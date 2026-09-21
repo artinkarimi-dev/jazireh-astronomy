@@ -45,7 +45,7 @@ export default function SunNowCard({ widget, fallbackSun = null, loading = false
       )}
       <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
         <Metric label="طول موج" value={data?.wavelength || '—'} />
-        <Metric label="زمان ثبت" value={formatDateTime(data?.observedAt)} />
+        <Metric label="زمان ثبت" value={formatObservedAt(data?.observedAt)} />
       </dl>
     </ObservatoryCard>
   )
@@ -64,10 +64,13 @@ function ExternalLinkButton({ href }) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
   try {
     return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }).format(new Date(value))
   } catch {
     return '—'
   }
+}
+
+function formatObservedAt(value) {
+  return value ? formatDateTime(value) : 'زمان دقیق در دسترس نیست'
 }
