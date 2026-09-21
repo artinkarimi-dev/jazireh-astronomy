@@ -1,32 +1,33 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, Sun } from 'lucide-react'
 import ObservatoryCard from './ObservatoryCard'
+import { getSunNowViewModel } from './sunNowModel'
 
-export default function SunNowCard({ widget, loading = false }) {
-  const data = widget?.data
-  const imageCandidates = [
-    normalizeImageUrl(data?.image),
-    normalizeImageUrl(data?.fallbackImage),
-  ].filter(Boolean)
+export default function SunNowCard({ widget, fallbackSun = null, loading = false }) {
+  const view = getSunNowViewModel(widget, fallbackSun)
+  const data = view.data
+  const imageCandidates = view.imageCandidates
+  const primaryImage = imageCandidates[0] || ''
+  const secondaryImage = imageCandidates[1] || ''
   const [imageIndex, setImageIndex] = useState(0)
   const imageUrl = imageCandidates[imageIndex] || ''
 
   useEffect(() => {
     setImageIndex(0)
-  }, [data?.image, data?.fallbackImage])
+  }, [primaryImage, secondaryImage])
 
   return (
     <ObservatoryCard
       eyebrow="Sun Now"
       title="خورشید اکنون"
       description="آخرین تصویر خورشیدی ثبت‌شده از منبع علمی."
-      status={loading ? 'stale' : widget?.status}
-      message={loading ? 'در حال دریافت' : widget?.message}
-      updatedAt={widget?.updatedAt}
-      source={widget?.source || data?.source}
-      sourceUrl={widget?.sourceUrl || data?.sourceUrl}
+      status={loading ? 'stale' : view.status}
+      message={loading ? 'در حال دریافت' : view.message}
+      updatedAt={view.updatedAt}
+      source={view.source}
+      sourceUrl={view.sourceUrl}
       className="accent-orange"
-      actions={data?.sourceUrl && <ExternalLinkButton href={data.sourceUrl} />}
+      actions={view.sourceUrl && <ExternalLinkButton href={view.sourceUrl} />}
     >
       {imageUrl ? (
         <div className="observatory-media-frame observatory-media-square">
@@ -48,11 +49,6 @@ export default function SunNowCard({ widget, loading = false }) {
       </dl>
     </ObservatoryCard>
   )
-}
-
-function normalizeImageUrl(value) {
-  if (!value || typeof value !== 'string') return ''
-  return value.trim().replace(/\+/g, '%2B').replace(/\[/g, '%5B').replace(/\]/g, '%5D')
 }
 
 function Metric({ label, value }) {

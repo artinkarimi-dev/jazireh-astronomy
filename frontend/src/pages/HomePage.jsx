@@ -51,7 +51,7 @@ export default function HomePage() {
     <>
       <Hero sky={content.sky} />
       <section className="content-shell section-space">
-        <HomeLiveTrio widgets={content.liveWidgets} sky={content.sky} loading={homeState === 'loading'} />
+        <HomeLiveTrio widgets={content.liveWidgets} sky={content.sky} sun={content.sun} loading={homeState === 'loading'} />
         <SectionHeader eyebrow={settings.homepage.section.eyebrow} title={settings.homepage.section.title} description={settings.homepage.section.description} />
         <div className="home-observatory-grid home-sky-only-grid">
           <SkyPreview data={content.sky} content={cards} className="home-observatory-card home-observatory-sky" />

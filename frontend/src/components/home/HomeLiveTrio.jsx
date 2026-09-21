@@ -2,7 +2,7 @@ import EarthCard from '../observatory/EarthCard'
 import MoonNowCard from '../observatory/MoonNowCard'
 import SunNowCard from '../observatory/SunNowCard'
 
-export default function HomeLiveTrio({ widgets = {}, sky = null, loading = false }) {
+export default function HomeLiveTrio({ widgets = {}, sky = null, sun = null, loading = false }) {
   return (
     <section className="home-live-trio-wrap" aria-label="زمین، ماه و خورشید اکنون">
       <div className="home-live-trio-head">
@@ -15,7 +15,7 @@ export default function HomeLiveTrio({ widgets = {}, sky = null, loading = false
       <div className="home-live-trio">
         <EarthCard widget={widgets.earth} loading={loading && !widgets.earth} />
         <MoonNowCard widget={widgets.moon} fallbackSky={sky} loading={loading && !widgets.moon} compact />
-        <SunNowCard widget={widgets.sun} loading={loading && !widgets.sun} />
+        <SunNowCard widget={widgets.sun} fallbackSun={sun} loading={loading && !widgets.sun && !sun} />
       </div>
     </section>
   )

@@ -26,6 +26,7 @@ const gitignoreSource = await readFile(new URL('../../.gitignore', import.meta.u
 const wordpressHtaccessSource = await readFile(new URL('../../wordpress/.htaccess', import.meta.url), 'utf8')
 const { getApodDisplay } = await import('../src/lib/apodLocalization.js')
 const { normalizeApodVideo } = await import('../src/lib/apodVideo.js')
+const { getSunNowViewModel } = await import('../src/components/observatory/sunNowModel.js')
 
 test('public Phase 1 routes are registered in the React router', () => {
   for (const route of ['/', '/sky', '/explore', '/news', '/apod', '/videos', '/events', '/topics', '/radar', '/about', '/contact']) {
@@ -176,16 +177,55 @@ test('videos page uses cached internal data and safe click-to-load YouTube embed
 })
 
 test('sun components render backend-provided states without hardcoded image fallback', () => {
-  for (const source of [sunPreviewSource, sunNowCardSource]) {
+  for (const source of [sunPreviewSource]) {
     assert.match(source, /data\?\.image/)
     assert.match(source, /data\?\.fallbackImage/)
     assert.match(source, /onError=\{\(\) => setImageIndex\(\(current\) => current \+ 1\)\}/)
     assert.doesNotMatch(source, /sdo\.gsfc\.nasa\.gov\/assets\/img\/latest\/latest_1024_0304\.jpg/)
   }
+  assert.match(sunNowCardSource, /getSunNowViewModel\(widget, fallbackSun\)/)
+  assert.match(sunNowCardSource, /view\.imageCandidates/)
+  assert.match(sunNowCardSource, /onError=\{\(\) => setImageIndex\(\(current\) => current \+ 1\)\}/)
+  assert.doesNotMatch(sunNowCardSource, /sdo\.gsfc\.nasa\.gov\/assets\/img\/latest\/latest_1024_0304\.jpg/)
   assert.match(sunPreviewSource, /ready: 'آماده'/)
   assert.match(sunPreviewSource, /stale: 'آخرین داده موجود'/)
   assert.match(sunPreviewSource, /error: 'خطای دریافت'/)
   assert.match(sunPreviewSource, /loading: 'در حال دریافت'/)
+})
+
+test('Sun Now renders stale fallback images without requiring observation time', () => {
+  const sdoImage = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg'
+  const stale = getSunNowViewModel(null, {
+    status: 'stale',
+    image: sdoImage,
+    fallbackImage: sdoImage,
+    sourceName: 'NASA SDO',
+    sourceUrl: 'https://sdo.gsfc.nasa.gov/data/',
+    wavelength: 'AIA 304Å',
+    observedAt: '',
+    isFallback: true,
+    displayWarning: 'داده پشتیبان',
+  })
+
+  assert.equal(stale.status, 'stale')
+  assert.equal(stale.imageCandidates[0], sdoImage)
+  assert.equal(stale.data.observedAt, '')
+  assert.equal(stale.data.isFallback, true)
+  assert.equal(stale.data.displayWarning, 'داده پشتیبان')
+
+  const ready = getSunNowViewModel({
+    status: 'ready',
+    data: {
+      image: 'https://example.com/sun.jpg',
+      observedAt: '2026-09-21T10:00:00Z',
+    },
+  })
+  assert.equal(ready.status, 'ready')
+  assert.equal(ready.imageCandidates[0], 'https://example.com/sun.jpg')
+
+  const unavailable = getSunNowViewModel({ status: 'error', data: { image: '', fallbackImage: '' } })
+  assert.equal(unavailable.status, 'error')
+  assert.deepEqual(unavailable.imageCandidates, [])
 })
 
 test('moon component uses backend phase direction and labels default location explicitly', () => {
