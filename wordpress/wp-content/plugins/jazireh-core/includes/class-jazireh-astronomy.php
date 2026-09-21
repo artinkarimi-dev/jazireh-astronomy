@@ -22,7 +22,7 @@ class Jazireh_Astronomy
 
         $moon = self::moon($now, $location);
         $sun = self::sun($now, $location);
-        $weather = self::weather($location['latitude'], $location['longitude']);
+        $weather = self::current_weather($location['latitude'], $location['longitude']);
         $planets = Jazireh_Planets::payload($now, array(
             'moonIllumination' => $moon['illumination'],
             'cloudCover' => $weather['cloudCover'],
@@ -190,15 +190,17 @@ class Jazireh_Astronomy
         );
     }
 
-    private static function weather($latitude, $longitude)
+    public static function current_weather($latitude, $longitude)
     {
-        $cache_key = 'jazireh_weather_' . md5(round((float) $latitude, 3) . '_' . round((float) $longitude, 3) . '_' . wp_date('Y-m-d-H'));
+        $location_key = md5(round((float) $latitude, 3) . '_' . round((float) $longitude, 3));
+        $cache_key = 'jazireh_weather_' . $location_key . '_' . wp_date('Y-m-d-H');
+        $last_good_key = 'jazireh_weather_last_good_' . $location_key;
         $cached = get_transient($cache_key);
         if (is_array($cached)) {
             return $cached;
         }
 
-        $fallback = self::weather_unavailable('سرویس هواشناسی در دسترس نیست؛ داده زنده هوا نمایش داده نمی‌شود.');
+        $fallback = self::weather_fallback($last_good_key, 'سرویس هواشناسی در دسترس نیست؛ داده زنده هوا نمایش داده نمی‌شود.');
         $url = add_query_arg(array(
             'latitude' => (float) $latitude,
             'longitude' => (float) $longitude,
@@ -232,13 +234,29 @@ class Jazireh_Astronomy
             'visibility' => null,
             'cloudCover' => isset($current['cloud_cover']) ? (int) round((float) $current['cloud_cover']) : null,
             'calculatedAt' => wp_date(DATE_ATOM),
+            'updatedAt' => !empty($current['time']) ? (string) $current['time'] : wp_date(DATE_ATOM),
             'timezone' => wp_timezone_string(),
             'isFallback' => false,
             'fallbackReason' => '',
             'displayWarning' => '',
         );
         set_transient($cache_key, $payload, 30 * MINUTE_IN_SECONDS);
+        set_transient($last_good_key, $payload, 6 * HOUR_IN_SECONDS);
         return $payload;
+    }
+
+    private static function weather_fallback($last_good_key, $reason)
+    {
+        $last_good = get_transient($last_good_key);
+        if (is_array($last_good) && isset($last_good['cloudCover']) && $last_good['cloudCover'] !== null) {
+            $last_good['status'] = 'stale';
+            $last_good['isFallback'] = true;
+            $last_good['fallbackReason'] = $reason;
+            $last_good['displayWarning'] = 'داده پشتیبان: آخرین داده معتبر هوا نمایش داده می‌شود.';
+            return $last_good;
+        }
+
+        return self::weather_unavailable($reason);
     }
 
     private static function weather_unavailable($reason)

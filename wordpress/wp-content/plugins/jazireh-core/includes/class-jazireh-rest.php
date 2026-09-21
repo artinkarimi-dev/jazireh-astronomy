@@ -431,20 +431,7 @@ final class Jazireh_REST
 
     private static function home_sun_payload()
     {
-        $widget = Jazireh_Widgets::cached_or_last_good('sun', 'Fresh solar imagery is being refreshed; last known good result returned.');
-        $data = is_array($widget) && !empty($widget['data']) && is_array($widget['data']) ? $widget['data'] : array();
-        return array(
-            'status' => is_array($widget) ? (string) ($widget['status'] ?? 'stale') : 'stale',
-            'title' => (string) ($data['title'] ?? 'خورشید اکنون'),
-            'image' => (string) ($data['image'] ?? ($data['fallbackImage'] ?? '')),
-            'fallbackImage' => (string) ($data['fallbackImage'] ?? ''),
-            'sourceName' => (string) ($data['source'] ?? ($widget['source'] ?? '')),
-            'sourceUrl' => (string) ($data['sourceUrl'] ?? ($widget['sourceUrl'] ?? '')),
-            'wavelength' => (string) ($data['wavelength'] ?? '304 Å'),
-            'observedAt' => (string) ($data['observedAt'] ?? ''),
-            'isFallback' => !is_array($widget) || (string) ($widget['status'] ?? '') !== Jazireh_Widgets::STATE_READY,
-            'displayWarning' => (string) ($data['displayWarning'] ?? ($widget['message'] ?? '')),
-        );
+        return Jazireh_Sun_Service::compatibility_payload();
     }
 
     private static function home_sky_payload()

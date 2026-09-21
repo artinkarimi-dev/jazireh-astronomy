@@ -58,6 +58,7 @@ final class Jazireh_Sky_Service
         $message = isset($widget['message']) ? (string) $widget['message'] : '';
         $calculated_at = isset($data['calculatedAt']) ? $data['calculatedAt'] : (isset($widget['updatedAt']) ? $widget['updatedAt'] : '');
         $highlights = isset($data['visibleHighlights']) && is_array($data['visibleHighlights']) ? $data['visibleHighlights'] : array();
+        $weather = self::weather_payload($location);
 
         $payload = array(
             'id' => 1,
@@ -66,9 +67,9 @@ final class Jazireh_Sky_Service
             'locationLabel' => 'محاسبه برای ' . (isset($location['name']) ? $location['name'] : 'تهران، ایران'),
             'latitude' => isset($location['latitude']) ? (string) $location['latitude'] : '35.6892',
             'longitude' => isset($location['longitude']) ? (string) $location['longitude'] : '51.3890',
-            'source' => isset($widget['source']) ? $widget['source'] : 'Astronomical calculation',
+            'source' => isset($weather['source']) && $weather['source'] !== 'none' ? $weather['source'] . ',Astronomical calculation' : (isset($widget['source']) ? $widget['source'] : 'Astronomical calculation'),
             'accuracy' => 'calculated',
-            'confidence' => $status === Jazireh_Widgets::STATE_READY ? 'medium' : 'low',
+            'confidence' => $status === Jazireh_Widgets::STATE_READY && empty($weather['isFallback']) ? 'medium' : 'low',
             'calculatedAt' => $calculated_at,
             'generatedAtUtc' => $calculated_at,
             'timezone' => isset($location['timezone']) ? $location['timezone'] : wp_timezone_string(),
@@ -77,32 +78,17 @@ final class Jazireh_Sky_Service
                 'lat' => isset($location['latitude']) ? (float) $location['latitude'] : 35.6892,
                 'lng' => isset($location['longitude']) ? (float) $location['longitude'] : 51.3890,
             ),
-            'isFallback' => $status !== Jazireh_Widgets::STATE_READY,
-            'fallbackReason' => $status === Jazireh_Widgets::STATE_READY ? '' : $message,
-            'displayWarning' => $status === Jazireh_Widgets::STATE_READY ? '' : $message,
-            'temperature' => null,
-            'condition' => isset($data['conditionLabelFa']) ? $data['conditionLabelFa'] : 'محاسبه نجومی',
-            'humidity' => null,
-            'wind' => null,
-            'pressure' => null,
+            'isFallback' => $status !== Jazireh_Widgets::STATE_READY || !empty($weather['isFallback']),
+            'fallbackReason' => $status === Jazireh_Widgets::STATE_READY ? (isset($weather['fallbackReason']) ? $weather['fallbackReason'] : '') : $message,
+            'displayWarning' => $status === Jazireh_Widgets::STATE_READY ? (isset($weather['displayWarning']) ? $weather['displayWarning'] : '') : $message,
+            'temperature' => $weather['temperature'],
+            'condition' => $weather['condition'] ?: (isset($data['conditionLabelFa']) ? $data['conditionLabelFa'] : 'محاسبه نجومی'),
+            'humidity' => $weather['humidity'],
+            'wind' => $weather['wind'],
+            'pressure' => $weather['pressure'],
             'visibility' => null,
-            'cloudCover' => null,
-            'weather' => array(
-                'status' => 'unavailable',
-                'source' => 'none',
-                'accuracy' => 'unavailable',
-                'confidence' => 'low',
-                'temperature' => null,
-                'condition' => 'داده زنده هوا در این خلاصه محاسبه نمی‌شود',
-                'humidity' => null,
-                'wind' => null,
-                'pressure' => null,
-                'visibility' => null,
-                'cloudCover' => null,
-                'isFallback' => true,
-                'fallbackReason' => 'Home uses the lightweight sky widget contract without weather fetches.',
-                'displayWarning' => 'داده هواشناسی زنده در این خلاصه دریافت نمی‌شود.',
-            ),
+            'cloudCover' => $weather['cloudCover'],
+            'weather' => $weather,
             'moonPhase' => isset($moon['phaseLabelFa']) ? $moon['phaseLabelFa'] : '',
             'moonIllumination' => isset($moon['illuminationPercent']) ? number_format_i18n((float) $moon['illuminationPercent'], 1) : '',
             'moonAge' => isset($moon['moonAgeDays']) ? number_format_i18n((float) $moon['moonAgeDays'], 1) : '',
@@ -124,13 +110,13 @@ final class Jazireh_Sky_Service
             'observingCondition' => array(
                 'status' => 'estimated',
                 'label' => isset($data['conditionLabelFa']) ? $data['conditionLabelFa'] : 'محاسبه نجومی',
-                'summary' => 'این خلاصه از محاسبات سبک رصدخانه زنده ساخته شده است.',
-                'source' => isset($widget['source']) ? $widget['source'] : 'Astronomical calculation',
+                'summary' => isset($weather['cloudCover']) && $weather['cloudCover'] !== null ? 'شاخص رصد با داده ابرناکی Open-Meteo و محاسبات ماه تکمیل شده است.' : 'این خلاصه از محاسبات سبک رصدخانه زنده ساخته شده است.',
+                'source' => isset($weather['source']) && $weather['source'] !== 'none' ? $weather['source'] . ',Astronomical calculation' : (isset($widget['source']) ? $widget['source'] : 'Astronomical calculation'),
                 'accuracy' => 'calculated',
-                'confidence' => $status === Jazireh_Widgets::STATE_READY ? 'medium' : 'low',
-                'isFallback' => $status !== Jazireh_Widgets::STATE_READY,
-                'fallbackReason' => $status === Jazireh_Widgets::STATE_READY ? '' : $message,
-                'displayWarning' => '',
+                'confidence' => $status === Jazireh_Widgets::STATE_READY && empty($weather['isFallback']) ? 'medium' : 'low',
+                'isFallback' => $status !== Jazireh_Widgets::STATE_READY || !empty($weather['isFallback']),
+                'fallbackReason' => $status === Jazireh_Widgets::STATE_READY ? (isset($weather['fallbackReason']) ? $weather['fallbackReason'] : '') : $message,
+                'displayWarning' => isset($weather['displayWarning']) ? $weather['displayWarning'] : '',
             ),
             'events' => $highlights,
             'planets' => self::unavailable_collection(
@@ -174,6 +160,32 @@ final class Jazireh_Sky_Service
             'message' => $message,
             'displayWarning' => $message,
             'key' => sanitize_key($key),
+        );
+    }
+
+    private static function weather_payload($location)
+    {
+        $latitude = isset($location['latitude']) ? (float) $location['latitude'] : 35.6892;
+        $longitude = isset($location['longitude']) ? (float) $location['longitude'] : 51.3890;
+        if (class_exists('Jazireh_Astronomy') && method_exists('Jazireh_Astronomy', 'current_weather')) {
+            return Jazireh_Astronomy::current_weather($latitude, $longitude);
+        }
+
+        return array(
+            'status' => 'stale',
+            'source' => 'none',
+            'accuracy' => 'unavailable',
+            'confidence' => 'low',
+            'temperature' => null,
+            'condition' => 'داده زنده هوا در دسترس نیست',
+            'humidity' => null,
+            'wind' => null,
+            'pressure' => null,
+            'visibility' => null,
+            'cloudCover' => null,
+            'isFallback' => true,
+            'fallbackReason' => 'Weather provider helper is unavailable.',
+            'displayWarning' => 'داده پشتیبان: وضعیت واقعی هوا فعلا دریافت نشده است.',
         );
     }
 

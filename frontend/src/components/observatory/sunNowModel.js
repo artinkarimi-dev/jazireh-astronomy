@@ -9,10 +9,7 @@ export function getSunNowViewModel(widget, fallbackSun) {
   const sourceUrl = widget?.sourceUrl || preferredData.sourceUrl || ''
   const message = widget?.message || preferredData.message || ''
   const updatedAt = widget?.updatedAt || preferredData.updatedAt || preferredData.fetchedAt || ''
-  const imageCandidates = [
-    normalizeSunImageUrl(preferredData.image),
-    normalizeSunImageUrl(preferredData.fallbackImage),
-  ].filter(Boolean)
+  const imageCandidates = uniqueImageCandidates(widgetData, flatWidget, flatFallback, preferredData)
 
   return {
     data: preferredData,
@@ -45,4 +42,11 @@ export function normalizeSunImageUrl(value) {
 
 function firstWithImage(...items) {
   return items.find((item) => item && (normalizeSunImageUrl(item.image) || normalizeSunImageUrl(item.fallbackImage))) || null
+}
+
+function uniqueImageCandidates(...items) {
+  return [...new Set(items.flatMap((item) => [
+    normalizeSunImageUrl(item?.image),
+    normalizeSunImageUrl(item?.fallbackImage),
+  ]).filter(Boolean))]
 }

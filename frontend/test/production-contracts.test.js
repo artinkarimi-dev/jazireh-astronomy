@@ -10,10 +10,12 @@ const headerSource = await readFile(new URL('../src/components/Header.jsx', impo
 const layoutSource = await readFile(new URL('../src/components/Layout.jsx', import.meta.url), 'utf8')
 const footerSource = await readFile(new URL('../src/components/Footer.jsx', import.meta.url), 'utf8')
 const contactPageSource = await readFile(new URL('../src/pages/ContactPage.jsx', import.meta.url), 'utf8')
+const homePageSource = await readFile(new URL('../src/pages/HomePage.jsx', import.meta.url), 'utf8')
 const newsPageSource = await readFile(new URL('../src/pages/NewsPage.jsx', import.meta.url), 'utf8')
 const skyTodayPageSource = await readFile(new URL('../src/pages/SkyTodayPage.jsx', import.meta.url), 'utf8')
 const videosPageSource = await readFile(new URL('../src/pages/VideosPage.jsx', import.meta.url), 'utf8')
 const heroSource = await readFile(new URL('../src/components/home/Hero.jsx', import.meta.url), 'utf8')
+const homeLiveTrioSource = await readFile(new URL('../src/components/home/HomeLiveTrio.jsx', import.meta.url), 'utf8')
 const skyPreviewSource = await readFile(new URL('../src/components/home/SkyPreview.jsx', import.meta.url), 'utf8')
 const sunPreviewSource = await readFile(new URL('../src/components/home/SunPreview.jsx', import.meta.url), 'utf8')
 const sunNowCardSource = await readFile(new URL('../src/components/observatory/SunNowCard.jsx', import.meta.url), 'utf8')
@@ -22,6 +24,8 @@ const viteConfigSource = await readFile(new URL('../vite.config.js', import.meta
 const webManifestSource = await readFile(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8')
 const themeFunctionsSource = await readFile(new URL('../../wordpress/wp-content/themes/jazireh-theme/functions.php', import.meta.url), 'utf8')
 const restSource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-rest.php', import.meta.url), 'utf8')
+const astronomySource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-astronomy.php', import.meta.url), 'utf8')
+const skyServiceSource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-sky-service.php', import.meta.url), 'utf8')
 const dailySource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/includes/class-jazireh-daily.php', import.meta.url), 'utf8')
 const corePluginSource = await readFile(new URL('../../wordpress/wp-content/plugins/jazireh-core/jazireh-core.php', import.meta.url), 'utf8')
 const gitignoreSource = await readFile(new URL('../../.gitignore', import.meta.url), 'utf8')
@@ -242,6 +246,55 @@ test('Sun Now renders stale fallback images without requiring observation time',
   const unavailable = getSunNowViewModel({ status: 'error', data: { image: '', fallbackImage: '' } })
   assert.equal(unavailable.status, 'error')
   assert.deepEqual(unavailable.imageCandidates, [])
+})
+
+test('homepage Sun path renders stale fallback images through the shared Sun card model', () => {
+  assert.match(homePageSource, /<HomeLiveTrio widgets=\{content\.liveWidgets\} sky=\{content\.sky\} sun=\{content\.sun\}/)
+  assert.match(homeLiveTrioSource, /<SunNowCard widget=\{widgets\.sun\} fallbackSun=\{sun\}/)
+  assert.match(restSource, /private static function home_sun_payload\(\)[\s\S]*Jazireh_Sun_Service::compatibility_payload\(\)/)
+  assert.match(sunNowCardSource, /getSunNowViewModel\(widget, fallbackSun\)/)
+  assert.match(sunNowCardSource, /formatObservedAt\(data\?\.observedAt\)/)
+
+  const sdoImage = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg'
+  const homeStale = getSunNowViewModel({
+    status: 'stale',
+    data: {
+      image: '',
+      fallbackImage: '',
+      observedAt: '',
+      wavelength: 'AIA 304Å',
+      isFallback: true,
+      displayWarning: 'داده پشتیبان',
+    },
+  }, {
+    status: 'stale',
+    image: sdoImage,
+    fallbackImage: sdoImage,
+    observedAt: '',
+    wavelength: 'AIA 304Å',
+    isFallback: true,
+    displayWarning: 'داده پشتیبان',
+  })
+
+  assert.equal(homeStale.status, 'stale')
+  assert.equal(homeStale.imageCandidates[0], sdoImage)
+  assert.equal(homeStale.data.wavelength, 'AIA 304Å')
+  assert.equal(homeStale.data.observedAt, '')
+  assert.equal(homeStale.data.displayWarning, 'داده پشتیبان')
+})
+
+test('Sky REST contracts reuse Open-Meteo weather with last-known-good fallback', () => {
+  assert.match(astronomySource, /public static function current_weather\(\$latitude, \$longitude\)/)
+  assert.match(astronomySource, /current.*temperature_2m,relative_humidity_2m,wind_speed_10m,pressure_msl,cloud_cover/s)
+  assert.match(astronomySource, /jazireh_weather_last_good_/)
+  assert.match(astronomySource, /set_transient\(\$last_good_key, \$payload, 6 \* HOUR_IN_SECONDS\)/)
+  assert.match(astronomySource, /'cloudCover' => isset\(\$current\['cloud_cover'\]\)/)
+
+  assert.match(skyServiceSource, /Jazireh_Astronomy::current_weather\(\$latitude, \$longitude\)/)
+  assert.match(skyServiceSource, /'temperature' => \$weather\['temperature'\]/)
+  assert.match(skyServiceSource, /'cloudCover' => \$weather\['cloudCover'\]/)
+  assert.match(skyServiceSource, /'weather' => \$weather/)
+  assert.doesNotMatch(skyServiceSource, /Home uses the lightweight sky widget contract without weather fetches/)
 })
 
 test('moon component uses backend phase direction and labels default location explicitly', () => {
