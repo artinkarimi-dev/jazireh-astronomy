@@ -105,7 +105,7 @@ try {
     assert_sun_contract($secondary['provider'] === 'NASA SDO', 'Secondary provider was not preserved.');
     assert_sun_contract($secondary['observedAt'] === '', 'Secondary SDO fallback must not invent observation time.');
 
-    $invalid_all = with_sun_http_mock(
+    $official_fallback = with_sun_http_mock(
         function ($preempt, $args, $url) {
             if (strpos($url, '/getClosestImage/') !== false) {
                 return sun_http_response(json_encode(array('id' => 123, 'date' => '2026-09-17T10:00:00Z')));
@@ -116,7 +116,11 @@ try {
             return $fetch_latest_payload->invoke(null);
         }
     );
-    assert_sun_contract(is_wp_error($invalid_all), 'Invalid image responses did not fail safely.');
+    assert_sun_contract(is_array($official_fallback), 'Official SDO fallback was not served when server validation failed.');
+    assert_sun_contract(!empty($official_fallback['isFallback']), 'Official SDO fallback was not marked fallback.');
+    assert_sun_contract($official_fallback['provider'] === 'NASA SDO', 'Official SDO fallback provider was not preserved.');
+    assert_sun_contract(($official_fallback['observedAt'] ?? '') === '', 'Official SDO fallback must not invent observation time.');
+    assert_sun_contract(strpos($official_fallback['fallbackReason'], 'could not be validated') !== false, 'Official SDO fallback did not disclose validation failure.');
 
     Jazireh_Widgets::delete_cached(Jazireh_Sun_Service::WIDGET_KEY);
     update_option('jazireh_widget_last_good_sun', Jazireh_Widgets::ready(Jazireh_Sun_Service::WIDGET_KEY, $primary, array(
@@ -132,8 +136,9 @@ try {
             return Jazireh_Sun_Service::widget(array('forceRefresh' => true));
         }
     );
-    assert_sun_contract(is_array($stale) && $stale['status'] === Jazireh_Widgets::STATE_STALE, 'Last-known-good cache was not served as stale.');
-    assert_sun_contract(($stale['data']['observedAt'] ?? '') === '2026-09-17T10:00:00+00:00', 'Stale cache did not preserve original observation time.');
+    assert_sun_contract(is_array($stale) && $stale['status'] === Jazireh_Widgets::STATE_STALE, 'Official fallback was not served as stale before last-known-good.');
+    assert_sun_contract(($stale['data']['image'] ?? '') === Jazireh_Sun_Service::SDO_LATEST_304, 'Official fallback did not take precedence over last-known-good.');
+    assert_sun_contract(($stale['data']['observedAt'] ?? '') === '', 'Official fallback must not invent observation time.');
 
     Jazireh_Widgets::delete_cached(Jazireh_Sun_Service::WIDGET_KEY);
     delete_option('jazireh_widget_last_good_sun');
@@ -145,8 +150,8 @@ try {
             return Jazireh_Sun_Service::widget(array('forceRefresh' => true));
         }
     );
-    assert_sun_contract(is_array($failed) && $failed['status'] === Jazireh_Widgets::STATE_ERROR, 'No-cache total failure did not return an error state.');
-    assert_sun_contract(($failed['data']['image'] ?? '') === '', 'No-cache total failure exposed an image.');
+    assert_sun_contract(is_array($failed) && $failed['status'] === Jazireh_Widgets::STATE_STALE, 'No-cache official fallback did not return a stale state.');
+    assert_sun_contract(($failed['data']['image'] ?? '') === Jazireh_Sun_Service::SDO_LATEST_304, 'No-cache official fallback did not expose the SDO image.');
 
     Jazireh_Sun_Service::maybe_schedule_refresh();
     assert_sun_contract(wp_next_scheduled(Jazireh_Sun_Service::REFRESH_HOOK) !== false, 'Sun refresh cron hook is not scheduled.');

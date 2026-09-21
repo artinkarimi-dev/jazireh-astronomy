@@ -13,6 +13,8 @@ final class Jazireh_Sun_Service
     const HELIOVIEWER_SITE = 'https://helioviewer.org/';
     const SDO_SITE = 'https://sdo.gsfc.nasa.gov/data/';
     const SDO_LATEST_304 = 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg';
+    const PROVIDER_TIMEOUT = 3;
+    const IMAGE_TIMEOUT = 3;
 
     public static function boot()
     {
@@ -183,8 +185,15 @@ final class Jazireh_Sun_Service
             );
         }
 
-        $fallback = self::fallback_payload(implode(' ', array_filter($errors)));
-        if (self::remote_image_is_available($fallback['image'])) {
+        $fallback_reason = implode(' ', array_filter($errors));
+        $fallback = self::fallback_payload($fallback_reason);
+        $fallback_validated = self::remote_image_is_available($fallback['image']);
+        if ($fallback_validated || self::is_official_sdo_fallback($fallback['image'])) {
+            if (!$fallback_validated) {
+                $fallback['message'] = 'Helioviewer در دسترس نیست؛ نشانی رسمی SDO به‌عنوان تصویر پشتیبان نمایش داده می‌شود.';
+                $fallback['displayWarning'] = 'داده پشتیبان: اعتبارسنجی سرور کامل نشد، اما نشانی رسمی SDO استفاده می‌شود.';
+                $fallback['fallbackReason'] = trim($fallback_reason . ' SDO fallback could not be validated by the server before timeout.');
+            }
             return $fallback;
         }
 
@@ -254,7 +263,10 @@ final class Jazireh_Sun_Service
             'sourceId' => $source['sourceId'],
         ), self::HELIOVIEWER_API_BASE . '/getClosestImage/');
 
-        $response = wp_remote_get($url, array('timeout' => 5));
+        $response = wp_remote_get($url, array(
+            'timeout' => self::PROVIDER_TIMEOUT,
+            'redirection' => 2,
+        ));
         if (is_wp_error($response)) {
             return $response;
         }
@@ -283,11 +295,11 @@ final class Jazireh_Sun_Service
 
         foreach (array('HEAD', 'GET') as $method) {
             $args = array(
-                'timeout' => 8,
-                'redirection' => 3,
+                'timeout' => self::IMAGE_TIMEOUT,
+                'redirection' => 2,
             );
             if ($method === 'GET') {
-                $args['limit_response_size'] = 2048;
+                $args['limit_response_size'] = 4096;
             }
 
             $response = $method === 'HEAD' ? wp_remote_head($url, $args) : wp_remote_get($url, $args);
@@ -298,6 +310,10 @@ final class Jazireh_Sun_Service
             $status = (int) wp_remote_retrieve_response_code($response);
             $content_type = strtolower((string) wp_remote_retrieve_header($response, 'content-type'));
             if ($status >= 200 && $status < 400 && self::is_image_content_type($content_type)) {
+                return true;
+            }
+
+            if ($method === 'GET' && $status >= 200 && $status < 400 && self::body_starts_with_image_signature(wp_remote_retrieve_body($response))) {
                 return true;
             }
         }
@@ -324,6 +340,34 @@ final class Jazireh_Sun_Service
     private static function is_image_content_type($content_type)
     {
         return is_string($content_type) && preg_match('/^image\/(jpeg|png|gif|webp|bmp|tiff)/', $content_type);
+    }
+
+    private static function body_starts_with_image_signature($body)
+    {
+        if (!is_string($body) || $body === '') {
+            return false;
+        }
+
+        return substr($body, 0, 3) === "\xFF\xD8\xFF"
+            || substr($body, 0, 8) === "\x89PNG\r\n\x1A\n"
+            || substr($body, 0, 6) === 'GIF87a'
+            || substr($body, 0, 6) === 'GIF89a'
+            || substr($body, 0, 4) === 'RIFF'
+            || substr($body, 0, 2) === 'BM';
+    }
+
+    private static function is_official_sdo_fallback($url)
+    {
+        $url = self::safe_image_url($url);
+        if ($url === '') {
+            return false;
+        }
+
+        $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
+        $path = (string) wp_parse_url($url, PHP_URL_PATH);
+
+        return $host === 'sdo.gsfc.nasa.gov'
+            && $path === '/assets/img/latest/latest_1024_0304.jpg';
     }
 
     private static function screenshot_url($source, $observed_at)
